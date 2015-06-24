@@ -33,7 +33,7 @@ class KatzmanBidder:
     def calc_type_dist_cdf(self):
         """
         Calculates the cumulative distribution function of the type distribution
-        :return: type_dist_cdf.  List.  The CDF of the type distribution.
+        :return: type_dist_cdf: List.  The CDF of the type distribution.
         """
         type_dist_cdf = list(numpy.cumsum(self.type_dist))
         return type_dist_cdf
@@ -41,7 +41,7 @@ class KatzmanBidder:
     def make_valuations(self):
         """
         Samples from the type distribution and assigns the bidder valuations.
-        :return: valuations.  List.  Valuations of each good.  All values are strictly decreasing and unique.
+        :return: valuations: List.  Valuations of each good.  All values are strictly decreasing and unique.
         """
         valuations = list(numpy.random.choice(self.possible_types, self.num_rounds, False, self.type_dist))
         valuations.sort(key=lambda x: x, reverse=True)
@@ -51,7 +51,7 @@ class KatzmanBidder:
         """
         Places a bid.
         :param current_round: Integer.  The current auction round.
-        :return: bid.  Float.  The bid the bidder will place.
+        :return: bid: Float.  The bid the bidder will place.
         """
         if current_round == 1:
             m = 2 * (self.num_bidders - 1) - 1
