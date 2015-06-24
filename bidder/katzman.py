@@ -50,6 +50,10 @@ class KatzmanBidder:
     def place_bid(self, current_round):
         """
         Places a bid.
+
+        In round 1, the bid placed is described in equation 1 of [1].
+        In round 2, sincere bidding takes place.
+
         :param current_round: Integer.  The current auction round.
         :return: bid: Float.  The bid the bidder will place.
         """
