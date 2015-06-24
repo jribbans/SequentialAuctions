@@ -13,6 +13,7 @@ numpy.random.seed(0)
 # Auction parameters
 num_rounds = 2
 num_bidders = 5
+# values in possible_types must be increasing.
 possible_types = [i / 100.0 for i in range(101)]
 type_dist = [1 / 101.0 for i in range(101)]
 

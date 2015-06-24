@@ -18,8 +18,9 @@ class KatzmanBidder:
         :param bidder_id: Integer.  A unique identifier for this given agent.
         :param num_rounds: Integer.  The number of rounds the auction this bidder is participating in will run for.
         :param num_bidders: Integer.  The total number of bidders in the auction this bidder is participating in.
-        :param possible_types: List.  A list of all possible types the bidder can take.
-        :param type_dist: List.  Probabilities corresponding to each entry in possible_types
+        :param possible_types: List.  A list of all possible types the bidder can take.  Types are arranged in
+        increasing order.
+        :param type_dist: List.  Probabilities corresponding to each entry in possible_types.
         """
         self.bidder_id = bidder_id
         self.num_rounds = num_rounds
