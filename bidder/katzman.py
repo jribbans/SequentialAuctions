@@ -45,7 +45,7 @@ class KatzmanBidder:
         :return: valuations: List.  Valuations of each good.  All values are strictly decreasing and unique.
         """
         valuations = list(numpy.random.choice(self.possible_types, self.num_rounds, False, self.type_dist))
-        valuations.sort(key=lambda x: x, reverse=True)
+        valuations.sort(reverse=True)
         return valuations
 
     def place_bid(self, current_round):
@@ -59,10 +59,10 @@ class KatzmanBidder:
         :return: bid: Float.  The bid the bidder will place.
         """
         if current_round == 1:
-            m = 2 * (self.num_bidders - 1) - 1
-            possible_val_idx = self.possible_types.index(self.valuations[0])
-            cdf_pow_m = [self.type_dist_cdf[i] ** m for i in range(possible_val_idx + 1)]
-            int_cdf_pow_m_to_v = scipy.integrate.simps(cdf_pow_m, self.possible_types[:possible_val_idx + 1])
+            m = 2 * (self.num_bidders - 1) - 1 # 2N - 1 in equation 1 of [1]
+            idx = self.possible_types.index(self.valuations[0])
+            cdf_pow_m = [self.type_dist_cdf[i] ** m for i in range(idx + 1)]
+            int_cdf_pow_m_to_v = scipy.integrate.simps(cdf_pow_m, self.possible_types[:idx + 1])
             bid = self.valuations[0] - (int_cdf_pow_m_to_v / cdf_pow_m[-1])
         else:
             if self.num_goods_won == 0:
