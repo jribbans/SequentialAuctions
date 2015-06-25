@@ -55,6 +55,10 @@ class KatzmanBidder:
         In round 1, the bid placed is described in equation 1 of [1].
         In round 2, sincere bidding takes place.
 
+        With respect to equation 1 of [1]:
+        H = valuations[0]
+        L = valuations[1]
+
         :param current_round: Integer.  The current auction round.
         :return: bid: Float.  The bid the bidder will place.
         """
