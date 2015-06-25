@@ -40,9 +40,9 @@ for r in range(num_rounds):
     # Notify winning bidder
     for i, b in enumerate(bidders):
         if i == winners[r]:
-            bidders[i].get_result(round_number, True, payments[r])
+            bidders[i].set_round_result(round_number, True, payments[r])
         else:
-            bidders[i].get_result(round_number, False, 0.0)
+            bidders[i].set_round_result(round_number, False, 0.0)
 
 # Display outcome to terminal
 print('Bidder information')
