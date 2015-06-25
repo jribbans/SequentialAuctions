@@ -26,7 +26,7 @@ for idx, val in enumerate(possible_types):
     bids[idx] = bidder.place_bid(1)
 
 # Make a plot of the results
-fig1 = plt.plot()
+plt.figure()
 plt.plot(possible_types, bids)
 plt.xlim(0, 1)
 plt.ylim(0, 1)
