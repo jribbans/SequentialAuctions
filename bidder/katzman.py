@@ -5,11 +5,12 @@ Implements a sequential auction bidder using the analysis found in [1].
 Journal of Economic Theory 86.1 (1999): 77-99.
 """
 
+from bidder.simple import SimpleBidder
 import numpy
 import scipy.integrate
 
 
-class KatzmanBidder:
+class KatzmanBidder(SimpleBidder):
     """A bidder that bids using the strategy described in [1].
     """
 
@@ -22,22 +23,8 @@ class KatzmanBidder:
         increasing order.
         :param type_dist: List.  Probabilities corresponding to each entry in possible_types.
         """
-        self.bidder_id = bidder_id
-        self.num_rounds = num_rounds
-        self.num_bidders = num_bidders
-        self.num_goods_won = 0
-        self.possible_types = possible_types
-        self.type_dist = type_dist
-        self.type_dist_cdf = self.calc_type_dist_cdf()
+        SimpleBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist)
         self.valuations = self.make_valuations()
-
-    def calc_type_dist_cdf(self):
-        """
-        Calculates the cumulative distribution function of the type distribution
-        :return: type_dist_cdf: List.  The CDF of the type distribution.
-        """
-        type_dist_cdf = list(numpy.cumsum(self.type_dist))
-        return type_dist_cdf
 
     def make_valuations(self):
         """
@@ -62,6 +49,7 @@ class KatzmanBidder:
         :param current_round: Integer.  The current auction round.
         :return: bid: Float.  The bid the bidder will place.
         """
+        r = current_round - 1
         if current_round == 1:
             m = 2 * (self.num_bidders - 1) - 1 # 2N - 1 in equation 1 of [1]
             idx = self.possible_types.index(self.valuations[0])
@@ -73,4 +61,5 @@ class KatzmanBidder:
                 bid = self.valuations[0]
             else:
                 bid = self.valuations[1]
-        return bid
+        self.bid[r] = bid
+        return self.bid[r]

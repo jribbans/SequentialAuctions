@@ -38,7 +38,11 @@ for r in range(num_rounds):
     payments[r] = float(nlargest(2, bids[r])[1])
     total_revenue += payments[r]
     # Notify winning bidder
-    bidders[winners[r]].num_goods_won += 1
+    for i, b in enumerate(bidders):
+        if i == winners[r]:
+            bidders[i].get_result(round_number, True, payments[r])
+        else:
+            bidders[i].get_result(round_number, False, 0.0)
 
 # Display outcome to terminal
 print('Bidder information')
@@ -57,3 +61,12 @@ print('Summary')
 print('Winners:', winners)
 print('Payments:', payments)
 print('Total Revenue:', total_revenue)
+
+print('Bidder Data')
+for i, b in enumerate(bidders):
+    print('Bidder', i)
+    print('Win Result:', b.win)
+    print('Valuation:', b.valuations)
+    print('Payment:', b.payment)
+    print('Utility:', b.utility)
+    print('Number of goods procured:', b.num_goods_won)

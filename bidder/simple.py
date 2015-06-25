@@ -48,13 +48,13 @@ class SimpleBidder:
         valuations = list(numpy.random.choice(self.possible_types, self.num_rounds, True, self.type_dist))
         return valuations
 
-    def place_bid(self, round_number):
+    def place_bid(self, current_round):
         """
         Places a bid.  The bid placed is equal to the valuation of the kth good won.
 
         :return: bid: Float.  The bid the bidder will place.
         """
-        r = round_number - 1
+        r = current_round - 1
         self.bid[r] = self.valuations[self.num_goods_won]
         return self.bid[r]
 
