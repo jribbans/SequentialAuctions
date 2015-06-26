@@ -34,11 +34,19 @@ class SimpleBidder:
 
     def calc_type_dist_cdf(self):
         """
-        Calculates the cumulative distribution function of the type distribution
+        Calculates the cumulative distribution function of the type distribution.
+
+        The probability function and the CDF will be normalized so that the CDF end value is 1.
+
         :return: type_dist_cdf: List.  The CDF of the type distribution.
         """
-        type_dist_cdf = list(numpy.cumsum(self.type_dist))
+        type_dist_cdf = numpy.cumsum(self.type_dist).tolist()
         # Ensure that the CDF ends at 1
+        # First, normalize the density
+        normalization = type_dist_cdf[-1]
+        for i in range(len(self.type_dist)):
+            self.type_dist[i] /= normalization
+        # Normalize the CDF
         for i in range(len(type_dist_cdf)):
             type_dist_cdf[i] = float(type_dist_cdf[i] / type_dist_cdf[-1])
         return type_dist_cdf
