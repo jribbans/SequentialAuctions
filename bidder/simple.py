@@ -48,7 +48,7 @@ class SimpleBidder:
             self.type_dist[i] /= normalization
         # Normalize the CDF
         for i in range(len(type_dist_cdf)):
-            type_dist_cdf[i] = float(type_dist_cdf[i] / type_dist_cdf[-1])
+            type_dist_cdf[i] = float(type_dist_cdf[i] / normalization
         return type_dist_cdf
 
     def make_valuations(self):
