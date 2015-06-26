@@ -48,7 +48,7 @@ class SimpleBidder:
             self.type_dist[i] /= normalization
         # Normalize the CDF
         for i in range(len(type_dist_cdf)):
-            type_dist_cdf[i] = float(type_dist_cdf[i] / normalization
+            type_dist_cdf[i] = float(type_dist_cdf[i] / normalization)
         return type_dist_cdf
 
     def make_valuations(self):
@@ -82,10 +82,10 @@ class SimpleBidder:
         if is_winner:
             self.win[r] = True
             self.payment[r] = payment
-            self.utility[r] = self.valuations[self.num_goods_won]*x - payment
+            self.utility[r] = self.valuations[self.num_goods_won] * x - payment
             # Do this last, since it's the current valuation we need to compute utility.
             self.num_goods_won += 1
         else:
             self.win[r] = False
             self.payment[r] = payment
-            self.utility[r] = self.valuations[self.num_goods_won]*x - payment
+            self.utility[r] = self.valuations[self.num_goods_won] * x - payment
