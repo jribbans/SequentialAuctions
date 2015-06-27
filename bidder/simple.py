@@ -2,14 +2,17 @@
 Implements a bidder which places bids equal to the valuation of the good in each round.
 """
 
+import random
 import numpy
+import scipy.integrate
+import scipy.interpolate
 
 
 class SimpleBidder:
     """A truthful bidder.
     """
 
-    def __init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist):
+    def __init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc):
         """
         :param bidder_id: Integer.  A unique identifier for this given agent.
         :param num_rounds: Integer.  The number of rounds the auction this bidder is participating in will run for.
@@ -17,14 +20,20 @@ class SimpleBidder:
         :param possible_types: List.  A list of all possible types the bidder can take.  Types are arranged in
         increasing order.
         :param type_dist: List.  Probabilities corresponding to each entry in possible_types.
+        :param type_dist_disc: Boolean.  True if type_dist is describing a discrete distribution.
         """
+        possible_types_is_sorted = all(possible_types[i] <= possible_types[i + 1]
+                                       for i in range(len(possible_types) - 1))
+        assert possible_types_is_sorted, 'possible types list must be non-decreasing'
         self.bidder_id = bidder_id
         self.num_rounds = num_rounds
         self.num_bidders = num_bidders
         self.possible_types = possible_types
         self.type_dist = type_dist
+        self.type_dist_disc = type_dist_disc
         self.num_goods_won = 0
         self.type_dist_cdf = self.calc_type_dist_cdf()
+        self.type_dist_icdf = scipy.interpolate.interp1d(self.type_dist_cdf, self.possible_types)
         self.valuations = self.make_valuations()
         # Keep track of what happens in each round
         self.bid = [0] * num_rounds
@@ -40,13 +49,19 @@ class SimpleBidder:
 
         :return: type_dist_cdf: List.  The CDF of the type distribution.
         """
-        type_dist_cdf = numpy.cumsum(self.type_dist).tolist()
-        # Ensure that the CDF ends at 1
-        # First, normalize the density
+        if self.type_dist_disc:
+            type_dist_cdf = numpy.cumsum(self.type_dist).tolist()
+        else:
+            type_dist_cdf = [0] * len(self.possible_types)
+            for idx, v in enumerate(self.type_dist):
+                type_dist_cdf[idx] = float(scipy.integrate.simps(
+                    self.type_dist[:idx + 1], self.possible_types[:idx + 1]))
+        # The CDF of the largest valuation may not be 1.  This can happen because of numerical issues,
+        # or the supplied probability function was not proper.  Here, we can try and fix these issues by normalizing
+        # the probability function and its CDF by the ending CDF value.
         normalization = type_dist_cdf[-1]
         for i in range(len(self.type_dist)):
             self.type_dist[i] /= normalization
-        # Normalize the CDF
         for i in range(len(type_dist_cdf)):
             type_dist_cdf[i] = float(type_dist_cdf[i] / normalization)
         return type_dist_cdf
@@ -56,7 +71,11 @@ class SimpleBidder:
         Samples from the type distribution and assigns the bidder valuations.
         :return: valuations: List.  Valuations of each good.
         """
-        valuations = list(numpy.random.choice(self.possible_types, self.num_rounds, True, self.type_dist))
+        if self.type_dist_disc:
+            valuations = numpy.random.choice(self.possible_types, self.num_rounds, True, self.type_dist).tolist()
+        else:
+            rn = [random.random() for i in range(self.num_rounds)]
+            valuations = [float(self.type_dist_icdf(rn[i])) for i in range(self.num_rounds)]
         return valuations
 
     def place_bid(self, current_round):

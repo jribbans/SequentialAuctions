@@ -63,6 +63,7 @@ class SequentialAuction:
         for r in range(self.num_rounds):
             round_number = r + 1
             print('Auction round', round_number)
+            print('Bids', self.bids[r])
             print('Winner: Bidder', self.winners[r])
             print('Payment:', self.payments[r])
 
