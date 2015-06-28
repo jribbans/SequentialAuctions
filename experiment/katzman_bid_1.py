@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 import scipy.stats
 from math import floor, ceil
 
-def make_plot(possible_types, type_dist, plot_title, filename):
-    bidder = KatzmanBidder(0, num_rounds, num_bidders, possible_types, type_dist)
+def make_plot(possible_types, type_dist, type_dist_disc, plot_title, filename):
+    bidder = KatzmanBidder(0, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
     bids = [0] * len(possible_types)
     for idx, val in enumerate(possible_types):
         bidder.valuations[0] = val
@@ -42,9 +42,10 @@ round_number = 1
 # Uniform
 possible_types = [i / 100.0 for i in range(101)]
 type_dist = [1 / 101.0 for i in range(101)]
+type_dist_disc = True
 plot_title = 'KatzmanBidder Round 1 Bids, Uniform(0,1), N = ' + str(num_bidders)
 filename = 'katzman_bid1_N_2_uniform.png'
-make_plot(possible_types, type_dist, plot_title, filename)
+make_plot(possible_types, type_dist, type_dist_disc, plot_title, filename)
 
 # Geometric
 p = 0.5
@@ -52,4 +53,4 @@ possible_types = [i for i in range(1,11)]
 type_dist = scipy.stats.geom.pmf(possible_types, p).tolist()
 plot_title = 'KatzmanBidder Round 1 Bids, Geometric, p = ' + str(p) + ', N = ' + str(num_bidders)
 filename = 'katzman_bid1_N_2_geometric.png'
-make_plot(possible_types, type_dist, plot_title, filename)
+make_plot(possible_types, type_dist, type_dist_disc, plot_title, filename)

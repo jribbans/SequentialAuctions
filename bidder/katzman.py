@@ -60,28 +60,30 @@ class KatzmanBidder(SimpleBidder):
         """
         r = current_round - 1
         if current_round == 1:
+            # We need to compute equation 1:
+            # b^*(H) = H - \frac{\int_{\underline{v}}^{H} F(x)^{2N - 1} \, dx}{F(H)^{2N - 1}}
+            # Let m = 2N - 1, where there are N + 1 bidders total
             m = 2 * (self.num_bidders - 1) - 1  # 2N - 1 in equation 1 of [1]
-            if self.type_dist_disc:
-                idx = self.possible_types.index(self.valuations[0])
-                cdf_pow_m = [self.type_dist_cdf[i] ** m for i in range(idx + 1)]
-                int_cdf_pow_m_to_v = scipy.integrate.simps(cdf_pow_m, self.possible_types[:idx + 1])
-                bid = self.valuations[0] - (int_cdf_pow_m_to_v / cdf_pow_m[-1])
-            else:
-                # Closest element in self.possible_types to the bidder's valuation
-                idx, closest_val = min(enumerate(self.possible_types),
-                                       key=lambda x: abs(self.possible_types[1] - self.valuations[0]))
-                # Calculate the CDF of the bidder's valuation
+            # To perform the integration, we need to have types from \underline{v} to H and their corresponding CDF
+            # values.  First, collect all possible types that are less than or equal to the bidder's valuation,
+            # and their corresponding CDF values.
+            types_le_val = [self.possible_types[i] for i in range(len(self.possible_types))
+                            if self.possible_types[i] <= self.valuations[0]]
+            cdf_types_le_val = self.type_dist_cdf[:len(types_le_val)]
+            # Add the bidder's valuation and corresponding CDF value, if necessary.  If we sampled valuations from a
+            # discrete distribution, then the bidder's valuation should be in the newly constructed list.  This should
+            # only need to be done when dealing with continuous type distributions.
+            if self.valuations[0] != types_le_val[-1]:
+                types_le_val.append(self.valuations[0])
                 cdf = scipy.interpolate.interp1d(self.possible_types, self.type_dist_cdf)
                 cdf_at_val = float(cdf(self.valuations[0]))
-                # The x (types) and y (CDF) we need to perform the integration
-                types_le_val = self.possible_types[:idx + 1]
-                types_le_val.append(self.valuations[0])
-                cdf_types_le_val = self.type_dist_cdf[:idx + 1]
                 cdf_types_le_val.append(cdf_at_val)
-                cdf_pow_m = [cdf_types_le_val[i] ** m for i in range(len(cdf_types_le_val))]
-                int_cdf_pow_m_to_v = scipy.integrate.simps(cdf_pow_m, types_le_val)
-                bid = self.valuations[0] - (int_cdf_pow_m_to_v / cdf_pow_m[-1])
-
+            # Compute F(x)^{2N - 1}
+            cdf_pow_m = [cdf_types_le_val[i] ** m for i in range(len(cdf_types_le_val))]
+            # Perform integration
+            int_cdf_pow_m_to_v = scipy.integrate.simps(cdf_pow_m, types_le_val)
+            # Calculate bid
+            bid = self.valuations[0] - (int_cdf_pow_m_to_v / cdf_pow_m[-1])
         else:
             if self.num_goods_won == 0:
                 bid = self.valuations[0]
