@@ -49,6 +49,7 @@ class SequentialAuction:
         print('Bidder Information')
         for i, bidder in enumerate(self.bidders):
             print('Bidder', i, ' v =', bidder.valuations)
+            print('Bids:', bidder.bid)
             print('Win Result:', bidder.win)
             print('Valuation:', bidder.valuations)
             print('Payment:', bidder.payment)
