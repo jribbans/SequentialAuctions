@@ -80,8 +80,13 @@ class KatzmanBidder(SimpleBidder):
                 cdf_types_le_val.append(cdf_at_val)
             # Compute F(x)^{2N - 1}
             cdf_pow_m = [cdf_types_le_val[i] ** m for i in range(len(cdf_types_le_val))]
-            # Perform integration
-            int_cdf_pow_m_to_v = scipy.integrate.simps(cdf_pow_m, types_le_val)
+            # Perform integration.  Sum if discrete.
+            if self.type_dist_disc:
+                int_cdf_pow_m_to_v = (types_le_val[0] - 0.0) * cdf_pow_m[0]
+                for i in range(len(types_le_val) - 1):
+                    int_cdf_pow_m_to_v += (types_le_val[i+1] - types_le_val[i]) * cdf_pow_m[i+1]
+            else:
+                int_cdf_pow_m_to_v = scipy.integrate.simps(cdf_pow_m, types_le_val)
             # Calculate bid
             bid = self.valuations[0] - (int_cdf_pow_m_to_v / cdf_pow_m[-1])
         else:
