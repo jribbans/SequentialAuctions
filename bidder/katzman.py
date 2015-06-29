@@ -34,11 +34,12 @@ class KatzmanBidder(SimpleBidder):
         :return: valuations: List.  Valuations of each good.  All values are strictly decreasing and unique.
         """
         if self.type_dist_disc:
-            valuations = numpy.random.choice(self.possible_types, self.num_rounds, True, self.type_dist).tolist()
+            valuations = numpy.random.choice(self.possible_types, self.num_rounds, False, self.type_dist).tolist()
         else:
             while True:
                 rn = [random.random() for i in range(self.num_rounds)]
                 valuations = [float(self.type_dist_icdf(rn[i])) for i in range(self.num_rounds)]
+                # Valuations must be unique.
                 if len(set(valuations)) == self.num_rounds:
                     break
         valuations.sort(reverse=True)
@@ -73,7 +74,7 @@ class KatzmanBidder(SimpleBidder):
             # Add the bidder's valuation and corresponding CDF value, if necessary.  If we sampled valuations from a
             # discrete distribution, then the bidder's valuation should be in the newly constructed list.  This should
             # only need to be done when dealing with continuous type distributions.
-            if self.valuations[0] != types_le_val[-1]:
+            if not self.type_dist_disc and self.valuations[0] != types_le_val[-1]:
                 types_le_val.append(self.valuations[0])
                 cdf = scipy.interpolate.interp1d(self.possible_types, self.type_dist_cdf)
                 cdf_at_val = float(cdf(self.valuations[0]))
