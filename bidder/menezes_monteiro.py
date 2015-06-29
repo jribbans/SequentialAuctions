@@ -56,7 +56,6 @@ class MenezesMonteiroBidder(SimpleBidder):
                     bid = self.valuations[1];
                 else:
                     bid = ((self.num_bidders - 2.0) / cdf_at_x_pow_n_minus_2) * integral
-                print(self.valuations[0], cdf_at_x_pow_n_minus_2, integral, to_int)
         else:
             if self.num_goods_won == 0:
                 bid = self.valuations[0]
