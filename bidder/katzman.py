@@ -68,17 +68,7 @@ class KatzmanBidder(SimpleBidder):
             # To perform the integration, we need to have types from \underline{v} to H and their corresponding CDF
             # values.  First, collect all possible types that are less than or equal to the bidder's valuation,
             # and their corresponding CDF values.
-            types_le_val = [self.possible_types[i] for i in range(len(self.possible_types))
-                            if self.possible_types[i] <= self.valuations[0]]
-            cdf_types_le_val = self.type_dist_cdf[:len(types_le_val)]
-            # Add the bidder's valuation and corresponding CDF value, if necessary.  If we sampled valuations from a
-            # discrete distribution, then the bidder's valuation should be in the newly constructed list.  This should
-            # only need to be done when dealing with continuous type distributions.
-            if not self.type_dist_disc and self.valuations[0] != types_le_val[-1]:
-                types_le_val.append(self.valuations[0])
-                cdf = scipy.interpolate.interp1d(self.possible_types, self.type_dist_cdf)
-                cdf_at_val = float(cdf(self.valuations[0]))
-                cdf_types_le_val.append(cdf_at_val)
+            types_le_val, cdf_types_le_val, pdf_types_le_val = self.get_types_le_val(self.valuations[0])
             # Compute F(x)^{2N - 1}
             cdf_pow_m = [cdf_types_le_val[i] ** m for i in range(len(cdf_types_le_val))]
             # Perform integration.  Sum if discrete.
@@ -97,3 +87,4 @@ class KatzmanBidder(SimpleBidder):
                 bid = self.valuations[1]
         self.bid[r] = bid
         return self.bid[r]
+

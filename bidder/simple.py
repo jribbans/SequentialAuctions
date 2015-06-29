@@ -108,3 +108,31 @@ class SimpleBidder:
             self.win[r] = False
             self.payment[r] = payment
             self.utility[r] = self.valuations[self.num_goods_won] * x - payment
+
+    def get_types_le_val(self, val):
+        """
+        Get all possible types from the type list that are at most val, and their corresponding CDF and PMF/PDF values.
+
+        :param: val.  Float.  The largest type of the list of types to return.
+        :return: types_le_val.  List.  All types less than or equal to val.
+        :return: cdf_types_le_val.  List.  CDF values of all types less than or equal to val.
+        :return: pdf_types_le_val.  List.  PDF/PMF values of all types less than or equal to val.
+        """
+        types_le_val = [self.possible_types[i] for i in range(len(self.possible_types))
+                        if self.possible_types[i] <= val]
+        cdf_types_le_val = self.type_dist_cdf[:len(types_le_val)]
+        pdf_types_le_val = self.type_dist[:len(types_le_val)]
+        # Add val and corresponding CDF value, if necessary.  If we sampled valuations from a discrete distribution,
+        # then the bidder's valuation should be in the newly constructed list.  This should only need to be done when
+        # dealing with continuous type distributions.
+        if not self.type_dist_disc and val != types_le_val[-1]:
+            types_le_val.append(val)
+            # CDF
+            cdf = scipy.interpolate.interp1d(self.possible_types, self.type_dist_cdf)
+            cdf_at_val = float(cdf(val))
+            cdf_types_le_val.append(cdf_at_val)
+            # PDF/PMF
+            pdf = scipy.interpolate.interp1d(self.possible_types, self.type_dist)
+            pdf_at_val = float(pdf(val))
+            pdf_types_le_val.append(pdf_at_val)
+        return types_le_val, cdf_types_le_val, pdf_types_le_val
