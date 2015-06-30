@@ -24,6 +24,10 @@ class MenezesMonteiroBidder(SimpleBidder):
         :param type_dist: List.  Probabilities corresponding to each entry in possible_types.
         """
         SimpleBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+        # The assumption in the paper is that $\delta(0) \ge 0$, so the marginal value of the second good must be
+        # non-negative.
+        while self.valuations[1] <= 0.0:
+            self.valuations = self.make_valuations()
 
     def place_bid(self, current_round):
         """
@@ -31,6 +35,7 @@ class MenezesMonteiroBidder(SimpleBidder):
 
         :return: bid: Float.  The bid the bidder will place.
         """
+        assert all(x >= 0.0 for x in self.valuations[1:]), "We require that \delta(0) \ge 0."
         r = current_round - 1
         # Unused.  Implemented for debugging.
         positive_synergy = self.valuations[0] + self.valuations[1] > 2 * self.valuations[0]
