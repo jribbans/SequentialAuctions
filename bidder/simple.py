@@ -131,7 +131,7 @@ class SimpleBidder:
             cdf = scipy.interpolate.interp1d(self.possible_types, self.type_dist_cdf)
             cdf_at_val = float(cdf(val))
             cdf_types_le_val.append(cdf_at_val)
-            # PDF/PMF
+            # PDF
             pdf = scipy.interpolate.interp1d(self.possible_types, self.type_dist)
             pdf_at_val = float(pdf(val))
             pdf_types_le_val.append(pdf_at_val)
