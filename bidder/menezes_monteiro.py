@@ -23,7 +23,6 @@ class MenezesMonteiroBidder(SimpleBidder):
         increasing order.
         :param type_dist: List.  Probabilities corresponding to each entry in possible_types.
         """
-        assert not type_dist_disc, "Valuations must come from a continuous distribution."
         SimpleBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 
     def place_bid(self, current_round):
@@ -38,22 +37,29 @@ class MenezesMonteiroBidder(SimpleBidder):
             if self.num_bidders == 2:
                 bid = self.valuations[1]
             else:
+                # We need to compute the following bid:
+                # b(x) = \frac{n-2}{F(x)^{n-2}} \int_{0}^{x} max(\delta(x) - x, y) F(y)^{n - 3} f(y) \, dy
                 types_le_val, cdf_types_le_val, pdf_types_le_val = self.get_types_le_val(self.valuations[0])
                 # F(x)^{n - 2}
                 cdf_at_x_pow_n_minus_2 = cdf_types_le_val[-1] ** (self.num_bidders - 2.0)
-                # max(delta(x) - x, y)
+                # max(\delta(x) - x, y)
                 z = [max(self.valuations[1], types_le_val[i]) for i in range(len(types_le_val))]
                 # F(y)^{n - 3}
                 cdf_pow_n_minus_3 = [cdf_types_le_val[i] ** (self.num_bidders - 3.0)
                                      for i in range(len(cdf_types_le_val))]
                 # max(delta(x) - x, y) * F(y)^{n-3} f(y)
                 to_int = [z[i] * cdf_pow_n_minus_3[i] * pdf_types_le_val[i] for i in range(len(types_le_val))]
-                # Result of integration
-                integral = scipy.integrate.simps(to_int, types_le_val)
-                # Use all of the above and compute
-                # # b(x) = \frac{n-2}{F(x)^{n-2}} \int_{0}^{x} \max \{ \delta(x) - x, y \} F(y)^{n - 3} f(y) \, dy
+                # Result of integration.  Sum if discrete.
+                if self.type_dist_disc:
+                    integral = to_int[0] * (types_le_val[0] - 0.0)
+                    for i in range(len(types_le_val) - 1):
+                        integral += to_int[i + 1] * (types_le_val[i + 1] - types_le_val[i])
+                else:
+                    integral = scipy.integrate.simps(to_int, types_le_val)
+                # Use all of the above and compute b(x).  Avoid division by 0 by checking if the denominator is close
+                # to 0.
                 if abs(cdf_at_x_pow_n_minus_2) <= 1e-5:
-                    bid = self.valuations[1];
+                    bid = self.valuations[1]
                 else:
                     bid = ((self.num_bidders - 2.0) / cdf_at_x_pow_n_minus_2) * integral
         else:
