@@ -11,6 +11,7 @@ from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
+
 def make_plot(possible_types, type_dist, type_dist_disc, plot_title, filename):
     bidder = MenezesMonteiroBidder(0, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
     bids = [0] * len(possible_types)
@@ -29,6 +30,7 @@ def make_plot(possible_types, type_dist, type_dist_disc, plot_title, filename):
     # Save the output to a file, then show
     plt.savefig(filename)
     plt.show()
+
 
 def make_plot2(possible_types, type_dist, type_dist_disc, plot_title, filename):
     bidder = MenezesMonteiroBidder(0, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
@@ -68,8 +70,9 @@ round_number = 1
 
 # Generate figures.  Note that values in possible_types must be increasing.
 # Uniform
-#possible_types = [i / 100.0 for i in range(101)]
-#type_dist = [1.0 for i in range(101)]
+# Use fewer points to make the output graph easier to see.
+# possible_types = [i / 100.0 for i in range(101)]
+# type_dist = [1.0 for i in range(101)]
 possible_types = [i / 50.0 for i in range(51)]
 type_dist = [1.0 for i in range(51)]
 type_dist_disc = False
