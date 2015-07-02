@@ -49,7 +49,7 @@ class MenezesMonteiroBidder(SimpleBidder):
                 # F(x)^{n - 2}
                 cdf_at_x_pow_n_minus_2 = cdf_types_le_val[-1] ** (self.num_bidders - 2.0)
                 # Avoid division by 0 when computing b(x).
-                if abs(cdf_at_x_pow_n_minus_2) <= 1e-5:
+                if self.valuations[0] <= 1e-5 or abs(cdf_at_x_pow_n_minus_2) <= 1e-5:
                     bid = self.valuations[1]
                 else:
                     # max(\delta(x) - x, y)
