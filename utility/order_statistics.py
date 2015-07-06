@@ -8,6 +8,7 @@ import scipy.interpolate
 
 
 def calc_dist_val_k_os(sample_space, dist, cdf, is_discrete, k, n, x):
+    assert not is_discrete, "Only continuous distributions are supported."
     if is_discrete:
         f = 0.0
     else:
@@ -21,6 +22,7 @@ def calc_dist_val_k_os(sample_space, dist, cdf, is_discrete, k, n, x):
 
 
 def calc_dist_val_k_os_u01(is_discrete, k, n, x):
+    assert not is_discrete, "Only continuous distributions are supported."
     if is_discrete:
         f = 0.0
     else:
@@ -31,6 +33,7 @@ def calc_dist_val_k_os_u01(is_discrete, k, n, x):
 
 
 def calc_joint_dist_val_jk_os(sample_space, dist, cdf, is_discrete, j, k, n, x, y):
+    assert not is_discrete, "Only continuous distributions are supported."
     if is_discrete:
         f = 0.0
     else:
@@ -45,6 +48,7 @@ def calc_joint_dist_val_jk_os(sample_space, dist, cdf, is_discrete, j, k, n, x, 
 
 
 def calc_joint_dist_val_jk_os_u01(is_discrete, j, k, n, x, y):
+    assert not is_discrete, "Only continuous distributions are supported."
     if is_discrete:
         f = 0.0
     else:

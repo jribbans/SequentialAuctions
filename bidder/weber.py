@@ -27,6 +27,7 @@ class WeberBidder(SimpleBidder):
         :param type_dist: List.  Probabilities corresponding to each entry in possible_types.
         :param type_dist_disc: Boolean.  True if type_dist is describing a discrete distribution.
         """
+        assert not type_dist_disc, "Only continuous distributions are supported."
         SimpleBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 
     def place_bid(self, current_round):
