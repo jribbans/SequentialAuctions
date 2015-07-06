@@ -4,9 +4,13 @@ auctions where one good is being assinged to one bidder in each round.
 [1] Weber, Robert J. "MULTIPLE—OBJECT AUCTIONS." (1981).
 """
 from bidder.simple import SimpleBidder
+from math import factorial
+from math import isnan
 import scipy.integrate
 import scipy.interpolate
 import scipy.misc
+from utility.order_statistics import *
+from copy import deepcopy
 
 
 class WeberBidder(SimpleBidder):
@@ -40,46 +44,47 @@ class WeberBidder(SimpleBidder):
             # Example: there are 2 rounds, and we are at round 1.  We want to know what Y_2 is, if Y_1 = x.
             # This will be the first highest bid after x.
             if self.type_dist_disc:
-                # b_{\ell}^S(x) = E[Y_k \mid Y_{\ell} = x]
-                types_le_val, cdf_types_le_val, pdf_types_le_val = self.get_types_le_val(self.valuations[0])
-                # Remove the element that corresponds to Y_{\ell} = x
-                types_le_val.pop()
-                cdf_types_le_val.pop()
-                pdf_types_le_val.pop()
-                # Retain what we need for the kth round
-                del types_le_val[-num_rounds_remaining:]
-                del cdf_types_le_val[-num_rounds_remaining:]
-                del pdf_types_le_val[-num_rounds_remaining:]
-                num_types_left = len(types_le_val)
-                if num_types_left == 0:
-                    bid = 0.0
-                else:
-                    # Compute f(z | Y_l = x)
-                    normalization = sum(pdf_types_le_val)
-                    pdf_types_le_val = [pdf_types_le_val[i] / normalization for i in range(num_types_left)]
-                    cdf_types_le_val = [cdf_types_le_val[i] / normalization for i in range(num_types_left)]
-                    val_times_dist = [types_le_val[i] * pdf_types_le_val[i] for i in range(num_types_left)]
-                    bid = sum(val_times_dist)
+                pass
             else:
-                # Compute conditional probabilities
-                dist = [0] * len(self.possible_types)
-                for i in range(len(self.possible_types)):
-                    if self.possible_types[i] < self.valuations[0]:
-                        dist[i] = self.type_dist[i]
-                    else:
-                        dist[i] = 0.0
-                dist_cdf = [0] * len(self.possible_types)
-                for idx, v in enumerate(self.possible_types):
-                    dist_cdf[idx] = float(scipy.integrate.simps(
-                        dist[:idx + 1], self.possible_types[:idx + 1]))
-                normalization = max(dist_cdf)
-                dist = [dist[i] / normalization for i in range(len(self.possible_types))]
-                dist_cdf = [dist_cdf[i] / normalization for i in range(len(self.possible_types))]
-                val_times_dist = [self.possible_types[i] * dist[i] for i in range(len(self.possible_types))]
-                types_to_int = [self.possible_types[i] for i in range(len(self.possible_types))
-                                if self.possible_types[i] < self.valuations[0]]
-                val_times_dist = [val_times_dist[i] for i in range(len(types_to_int))]
-                bid = scipy.integrate.simps(val_times_dist, types_to_int)
+                if current_round == self.num_rounds:
+                    bid = self.valuations[0]
+                else:
+                    n = (self.num_bidders - 1) * 2 # Weber: 2n - 1 values other than bidders own
+                    j = n - self.num_rounds + 1 # Weber: k
+                    k = n - current_round + 1 # Weber: \ell
+                    y = self.valuations[0]
+
+                    sample_space = deepcopy(self.possible_types)
+                    dist = deepcopy(self.type_dist)
+                    cdf = deepcopy(self.type_dist_cdf)
+                    interp_dist = scipy.interpolate.interp1d(sample_space, dist)
+                    interp_cdf = scipy.interpolate.interp1d(sample_space, cdf)
+                    if self.valuations[0] not in sample_space:
+                        sample_space.append(self.valuations[0])
+                        dist.append(float(interp_dist(self.valuations[0])))
+                        cdf.append(float(interp_cdf(self.valuations[0])))
+                    sample_space.sort()
+                    dist.sort()
+                    cdf.sort()
+
+                    cond_dist = [0] * len(sample_space)
+                    for i in range(len(sample_space)):
+                        if self.possible_types[i] < y:
+                            numerator = calc_joint_dist_val_jk_os(sample_space,
+                                                                  dist,
+                                                                  cdf,
+                                                                  self.type_dist_disc,
+                                                                  j, k, n, sample_space[i], y)
+                            denominator = calc_dist_val_k_os(sample_space, dist, cdf,
+                                                             self.type_dist_disc, k, n, y)
+                            cond_dist[i] = numerator / denominator
+                        else:
+                            cond_dist[i] = 0.0
+                    #print(cond_dist)
+                    to_integrate = [0] * len(sample_space)
+                    for i in range(len(sample_space)):
+                        to_integrate[i] = sample_space[i] * cond_dist[i]
+                    bid = scipy.integrate.simps(to_integrate, sample_space)
 
         self.bid[r] = bid
         return self.bid[r]

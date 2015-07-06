@@ -12,7 +12,7 @@ numpy.random.seed(0)
 
 # Auction parameters
 num_rounds = 2
-num_bidders = 2
+num_bidders = 4
 
 # Values in possible_types must be increasing.
 possible_types = [i / 100.0 for i in range(101)]
@@ -25,11 +25,13 @@ type_dist = [1.0 / len(possible_types)] * len(possible_types)
 bidders_disc = [WeberBidder(i, num_rounds, num_bidders, possible_types, type_dist, True)
                 for i in range(num_bidders)]
 # Run auction
+""""
 auction = SequentialAuction(bidders_disc, num_rounds)
 auction.run()
 auction.print_summary()
 auction.print_round_overview()
 auction.print_bidder_results()
+"""
 
 # Continuous type distribution
 print("----------")

@@ -39,6 +39,7 @@ num_bidders = 4
 round_number = 1
 
 # Generate figures.  Note that values in possible_types must be increasing.
+"""
 # Uniform
 possible_types = [i / 100.0 for i in range(101)]
 type_dist = [1 / 101.0 for i in range(101)]
@@ -54,3 +55,14 @@ type_dist = scipy.stats.geom.pmf(possible_types, p).tolist()
 plot_title = 'WeberBidder Round 1 Bids, Geometric, p = ' + str(p) + ', N = ' + str(num_bidders)
 filename = 'weber_bid1_N_4_geometric.png'
 make_plot(possible_types, type_dist, type_dist_disc, plot_title, filename)
+"""
+
+# Uniform, continuous
+possible_types = [i / 100.0 for i in range(101)]
+type_dist = [1 for i in range(101)]
+type_dist_disc = False
+plot_title = 'WeberBidder Round 1 Bids, Uniform(0,1), N = ' + str(num_bidders)
+filename = 'weber_bid1_N_4_uniform_c.png'
+make_plot(possible_types, type_dist, type_dist_disc, plot_title, filename)
+
+
