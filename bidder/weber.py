@@ -77,6 +77,11 @@ class WeberBidder(SimpleBidder):
                                                                   j, k, n, sample_space[i], y)
                             denominator = calc_dist_val_k_os(sample_space, dist, cdf,
                                                              self.type_dist_disc, k, n, y)
+                            """
+                            numerator = calc_joint_dist_val_jk_os_u01(self.type_dist_disc,
+                                                                  j, k, n, sample_space[i], y)
+                            denominator = calc_dist_val_k_os_u01(self.type_dist_disc, k, n, y)
+                            """
                             cond_dist[i] = numerator / denominator
                         else:
                             cond_dist[i] = 0.0
