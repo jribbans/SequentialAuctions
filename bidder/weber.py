@@ -49,7 +49,7 @@ class WeberBidder(SimpleBidder):
                 if current_round == self.num_rounds:
                     bid = self.valuations[0]
                 else:
-                    n = (self.num_bidders - 1) * 2 # Weber: 2n - 1 values other than bidders own
+                    n = (self.num_bidders - 1) # Weber: n - 1 values other than bidders own
                     j = n - self.num_rounds + 1 # Weber: k
                     k = n - current_round + 1 # Weber: \ell
                     y = self.valuations[0]
