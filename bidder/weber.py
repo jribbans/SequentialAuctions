@@ -91,7 +91,7 @@ class WeberBidder(SimpleBidder):
                     to_integrate = [0] * len(sample_space)
                     for i in range(len(sample_space)):
                         to_integrate[i] = sample_space[i] * cond_dist[i]
-                    bid = scipy.integrate.simps(to_integrate, sample_space)
+                    bid = scipy.integrate.trapz(to_integrate, sample_space)
 
         self.bid[r] = bid
         return self.bid[r]
