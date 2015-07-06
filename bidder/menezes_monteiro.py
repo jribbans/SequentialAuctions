@@ -22,6 +22,7 @@ class MenezesMonteiroBidder(SimpleBidder):
         :param possible_types: List.  A list of all possible types the bidder can take.  Types are arranged in
         increasing order.
         :param type_dist: List.  Probabilities corresponding to each entry in possible_types.
+        :param type_dist_disc: Boolean.  True if type_dist is describing a discrete distribution.
         """
         # Bidder valuations are drawn from distribution F, where F(0) = 0 and density f > 0
         assert all(possible_types[i] >= 0 for i in range(len(possible_types))

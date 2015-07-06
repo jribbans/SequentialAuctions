@@ -25,6 +25,7 @@ class WeberBidder(SimpleBidder):
         :param possible_types: List.  A list of all possible types the bidder can take.  Types are arranged in
         increasing order.
         :param type_dist: List.  Probabilities corresponding to each entry in possible_types.
+        :param type_dist_disc: Boolean.  True if type_dist is describing a discrete distribution.
         """
         SimpleBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 
