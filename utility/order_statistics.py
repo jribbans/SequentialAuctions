@@ -10,7 +10,7 @@ import scipy.interpolate
 def calc_dist_val_k_os(sample_space, dist, cdf, is_discrete, k, n, x):
     assert not is_discrete, "Only continuous distributions are supported."
     if is_discrete:
-        f = 0.0
+        pass
     else:
         interp_dist = scipy.interpolate.interp1d(sample_space, dist)
         interp_cdf = scipy.interpolate.interp1d(sample_space, cdf)
@@ -24,7 +24,7 @@ def calc_dist_val_k_os(sample_space, dist, cdf, is_discrete, k, n, x):
 def calc_dist_val_k_os_u01(is_discrete, k, n, x):
     assert not is_discrete, "Only continuous distributions are supported."
     if is_discrete:
-        f = 0.0
+        pass
     else:
         f = factorial(n) / (factorial(k - 1) * factorial(n - k))
         f *= x ** (k - 1)
@@ -35,7 +35,7 @@ def calc_dist_val_k_os_u01(is_discrete, k, n, x):
 def calc_joint_dist_val_jk_os(sample_space, dist, cdf, is_discrete, j, k, n, x, y):
     assert not is_discrete, "Only continuous distributions are supported."
     if is_discrete:
-        f = 0.0
+        pass
     else:
         interp_dist = scipy.interpolate.interp1d(sample_space, dist)
         interp_cdf = scipy.interpolate.interp1d(sample_space, cdf)
@@ -50,7 +50,7 @@ def calc_joint_dist_val_jk_os(sample_space, dist, cdf, is_discrete, j, k, n, x, 
 def calc_joint_dist_val_jk_os_u01(is_discrete, j, k, n, x, y):
     assert not is_discrete, "Only continuous distributions are supported."
     if is_discrete:
-        f = 0.0
+        pass
     else:
         f = factorial(n) / (factorial(j - 1) * factorial(k - j - 1) * factorial(n - k))
         f *= x ** (j - 1)

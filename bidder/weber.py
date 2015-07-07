@@ -51,47 +51,37 @@ class WeberBidder(SimpleBidder):
                 if current_round == self.num_rounds:
                     bid = self.valuations[0]
                 else:
-                    n = (self.num_bidders - 1) # Weber: n - 1 values other than bidders own
-                    j = n - self.num_rounds + 1 # Weber: k
-                    k = n - current_round + 1 # Weber: \ell
+                    # Define parameters to compute order statistic distribution values
+                    n = (self.num_bidders - 1)  # Weber: n - 1 values other than bidders own
+                    j = n - self.num_rounds + 1  # Weber: k
+                    k = n - current_round + 1  # Weber: \ell
                     y = self.valuations[0]
 
-                    sample_space = deepcopy(self.possible_types)
-                    dist = deepcopy(self.type_dist)
-                    cdf = deepcopy(self.type_dist_cdf)
-                    interp_dist = scipy.interpolate.interp1d(sample_space, dist)
-                    interp_cdf = scipy.interpolate.interp1d(sample_space, cdf)
-                    if self.valuations[0] not in sample_space:
-                        sample_space.append(self.valuations[0])
-                        dist.append(float(interp_dist(self.valuations[0])))
-                        cdf.append(float(interp_cdf(self.valuations[0])))
-                    sample_space.sort()
-                    dist.sort()
-                    cdf.sort()
-
-                    cond_dist = [0] * len(sample_space)
-                    for i in range(len(sample_space)):
+                    # f_{Y_k \mid Y_{\ell}} (z \mid x) = f_{Y_k, Y_{\ell}} (z, x) / f_{Y_{\ell}(x)}
+                    cond_dist = [0] * len(self.possible_types)
+                    for i in range(len(self.possible_types)):
                         if self.possible_types[i] < y:
-                            numerator = calc_joint_dist_val_jk_os(sample_space,
-                                                                  dist,
-                                                                  cdf,
+                            numerator = calc_joint_dist_val_jk_os(self.possible_types,
+                                                                  self.type_dist,
+                                                                  self.type_dist_cdf,
                                                                   self.type_dist_disc,
-                                                                  j, k, n, sample_space[i], y)
-                            denominator = calc_dist_val_k_os(sample_space, dist, cdf,
+                                                                  j, k, n, self.possible_types[i], y)
+                            denominator = calc_dist_val_k_os(self.possible_types, self.type_dist, self.type_dist_cdf,
                                                              self.type_dist_disc, k, n, y)
                             """
                             numerator = calc_joint_dist_val_jk_os_u01(self.type_dist_disc,
-                                                                  j, k, n, sample_space[i], y)
+                                                                  j, k, n, self.possible_types[i], y)
                             denominator = calc_dist_val_k_os_u01(self.type_dist_disc, k, n, y)
                             """
                             cond_dist[i] = numerator / denominator
                         else:
                             cond_dist[i] = 0.0
-                    #print(cond_dist)
-                    to_integrate = [0] * len(sample_space)
-                    for i in range(len(sample_space)):
-                        to_integrate[i] = sample_space[i] * cond_dist[i]
-                    bid = scipy.integrate.trapz(to_integrate, sample_space)
+                    # z * f_{Y_k \mid Y_{\ell}} (z \mid x)
+                    to_integrate = [0] * len(self.possible_types)
+                    for i in range(len(self.possible_types)):
+                        to_integrate[i] = self.possible_types[i] * cond_dist[i]
+                    # Trapezoidal rule seems to do better for the uniform distribution
+                    bid = scipy.integrate.trapz(to_integrate, self.possible_types)
 
         self.bid[r] = bid
         return self.bid[r]

@@ -18,6 +18,7 @@ num_bidders = 4
 possible_types = [i / 100.0 for i in range(101)]
 
 # Discrete type distribution
+"""
 print("----------")
 print("Discrete Distribution")
 type_dist = [1.0 / len(possible_types)] * len(possible_types)
@@ -25,7 +26,6 @@ type_dist = [1.0 / len(possible_types)] * len(possible_types)
 bidders_disc = [WeberBidder(i, num_rounds, num_bidders, possible_types, type_dist, True)
                 for i in range(num_bidders)]
 # Run auction
-""""
 auction = SequentialAuction(bidders_disc, num_rounds)
 auction.run()
 auction.print_summary()
@@ -40,8 +40,8 @@ type_dist = [1.0] * len(possible_types)
 # Generate bidders
 bidders_cont = [WeberBidder(i, num_rounds, num_bidders, possible_types, type_dist, False)
                 for i in range(num_bidders)]
-for i in range(num_bidders):
-    bidders_cont[i].valuations = bidders_disc[i].valuations
+#for i in range(num_bidders):
+#    bidders_cont[i].valuations = bidders_disc[i].valuations
 # Run auction
 auction = SequentialAuction(bidders_cont, num_rounds)
 auction.run()
