@@ -41,6 +41,16 @@ class SimpleBidder:
         self.payment = [0] * num_rounds
         self.utility = [0] * num_rounds
 
+    def reset(self):
+        """
+        Reset values as if this bidder has not done anything yet.
+        """
+        self.num_goods_won = 0
+        self.bid = [0] * self.num_rounds
+        self.win = [False] * self.num_rounds
+        self.payment = [0] * self.num_rounds
+        self.utility = [0] * self.num_rounds
+
     def calc_type_dist_cdf(self):
         """
         Calculates the cumulative distribution function of the type distribution.
