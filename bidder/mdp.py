@@ -30,23 +30,36 @@ class MDPBidder(SimpleBidder):
         self.action_space = possible_types
         self.prob_winning = [[0.0] * len(self.action_space) for i in range(num_rounds)]
 
-    def calc_prob_winning(self, bidders, current_round):
+    def calc_prob_winning(self, bidders, current_round, num_trials_per_action=100):
+        """
+        Calculate the probability of winning against a set of bidders for each action in the action space.
+
+        :param bidders: List.  Bidders to learn from.
+        :param current_round: Integer.  Round of interest.
+        :param num_trials_per_action: Integer.  Number of times to test an action.
+        """
         r = current_round - 1
-        num_trials_per_a = 100
         win_count = [0] * len(self.action_space)
+
         sa = SequentialAuction(bidders, self.num_rounds)
         for a_idx, a in enumerate(self.action_space):
-            for t in range(num_trials_per_a):
+            for t in range(num_trials_per_action):
+                # Have bidders sample new valuations
                 for bidder in bidders:
                     bidder.valuations = bidder.make_valuations()
                     bidder.reset()
+                # Run an auction
                 sa.bidders = bidders
                 sa.run()
+                # See if the action we are using leads to a win
                 if max(sa.bids[r]) < a:
                     win_count[a_idx] += 1
                 elif max(sa.bids[0]) == a:
-                    win_count[a_idx] += 0.5
-        prob_win = [win_count[i] / num_trials_per_a for i in range(len(self.possible_types))]
+                    # Increment based on how many bidders bid the same bid
+                    num_same_bid = sum(b == a for b in sa.bids[0])
+                    win_count[a_idx] += num_same_bid / self.num_bidders
+
+        prob_win = [win_count[i] / num_trials_per_action for i in range(len(self.possible_types))]
         self.prob_winning[r] = prob_win
 
     def place_bid(self, current_round):
