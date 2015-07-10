@@ -6,6 +6,7 @@ from auction.SequentialAuction import SequentialAuction
 from copy import deepcopy
 import random
 import numpy
+import heapq
 
 # Initialize random number seeds for repeatability
 random.seed(0)
@@ -29,6 +30,10 @@ class MDPBidder(SimpleBidder):
         SimpleBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
         self.action_space = possible_types
         self.prob_winning = [[0.0] * len(self.action_space) for i in range(num_rounds)]
+        self.num_price_samples = 101
+        self.price_dist = [0] * self.num_price_samples
+        self.price_cdf = [0] * self.num_price_samples
+        self.price = [0] * self.num_price_samples
 
     def calc_prob_winning(self, bidders, current_round, num_trials_per_action=100):
         """
@@ -40,7 +45,7 @@ class MDPBidder(SimpleBidder):
         """
         r = current_round - 1
         win_count = [0] * len(self.action_space)
-
+        prices = []
         sa = SequentialAuction(bidders, self.num_rounds)
         for a_idx, a in enumerate(self.action_space):
             for t in range(num_trials_per_action):
@@ -58,9 +63,19 @@ class MDPBidder(SimpleBidder):
                     # Increment based on how many bidders bid the same bid
                     num_same_bid = sum(b == a for b in sa.bids[0])
                     win_count[a_idx] += num_same_bid / self.num_bidders
+                # Keep track of prices
+                prices.append(sa.payments[r])
 
         prob_win = [win_count[i] / num_trials_per_action for i in range(len(self.possible_types))]
         self.prob_winning[r] = prob_win
+        # Get the density and values associated with the density of the prices seen
+        # hist has n elements, and bin_edges has n+1 elements
+        hist, bin_edges = numpy.histogram(prices, self.num_price_samples, density=True)
+        cdf = numpy.cumsum(hist * numpy.diff(bin_edges))
+        price = [0.5 * (bin_edges[i] + bin_edges[i + 1]) for i in range(self.num_price_samples)]
+        self.price = price
+        self.price_dist = hist
+        self.price_cdf = cdf
 
     def place_bid(self, current_round):
         """
