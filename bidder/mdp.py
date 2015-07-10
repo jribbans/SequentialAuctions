@@ -6,7 +6,6 @@ from auction.SequentialAuction import SequentialAuction
 from copy import deepcopy
 import random
 import numpy
-import heapq
 
 # Initialize random number seeds for repeatability
 random.seed(0)
