@@ -35,16 +35,24 @@ learner = MDPBidder(num_bidders, num_rounds, num_bidders, possible_types, type_d
 current_round = 1
 learner.calc_prob_winning(bidders, current_round, num_trials_per_action)
 
+"""
 print("prob winning")
 for a_idx, a in enumerate(learner.action_space):
     print(a, learner.prob_winning[current_round - 1][a_idx])
 print("price dist")
 for p_idx, p in enumerate(learner.price):
     print(p, learner.price_dist[p_idx], learner.price_cdf[p_idx])
+"""
 
+"""
 plt.figure()
 plt.plot(learner.action_space, learner.prob_winning[current_round - 1], label='Prob Winning')
 plt.plot(learner.price, learner.price_dist, label='Price PDF')
 plt.plot(learner.price, learner.price_cdf, label='Price CDF')
+plt.xlabel('Bid')
+plt.ylabel('Probability/Density')
 plt.legend()
 plt.show()
+"""
+
+learner.calc_Q()

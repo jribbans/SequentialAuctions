@@ -6,6 +6,8 @@ from auction.SequentialAuction import SequentialAuction
 from copy import deepcopy
 import random
 import numpy
+import scipy.integrate
+import scipy.interpolate
 
 # Initialize random number seeds for repeatability
 random.seed(0)
@@ -75,6 +77,68 @@ class MDPBidder(SimpleBidder):
         self.price = price
         self.price_dist = hist
         self.price_cdf = cdf
+
+    def calc_Q(self):
+        """
+        """
+        R = [[[0 for b in range(len(self.action_space))]
+              for j in range(self.num_rounds + 1)]
+             for X in range(self.num_rounds + 1)]
+        # R((X, j-1), b, p) = \int r((X, j-1), b, p) f(p) dp
+        for X in range(self.num_rounds + 1):
+            for j in range(self.num_rounds):
+                for b_idx, b in enumerate(self.action_space):
+                    r = [-p if p <= b else 0.0 for p_idx, p in enumerate(self.price)]
+                    to_integrate = [r[p_idx] * self.price_dist[p_idx]
+                                    for p_idx, p in enumerate(self.price)]
+                    R[X][j][b_idx] = scipy.integrate.trapz(to_integrate, self.price)
+        # R((X, n)) = v(X)
+        for X in range(self.num_rounds + 1):
+            for b_idx, b in enumerate(self.action_space):
+                R[X][-1][b_idx] = sum(self.valuations[:X])
+
+        Q = [[[0 for b in range(len(self.action_space))]
+              for j in range(self.num_rounds + 1)]
+             for X in range(self.num_rounds + 1)]
+        V = [[0 for j in range(self.num_rounds + 1)]
+             for X in range(self.num_rounds + 1)]
+
+        # Calculate the CDF of prices at points in the action space
+        interp_price_cdf = scipy.interpolate.interp1d(self.price, self.price_cdf)
+        Fb = [0] * len(self.action_space)
+        for b_idx, b in enumerate(self.action_space):
+            if b < min(self.price):
+                Fb[b_idx] = 0
+            elif b > max(self.price):
+                Fb[b_idx] = 1.0
+            else:
+                Fb[b_idx] = float(interp_price_cdf(b))
+
+        # Value iteration
+        num_iter = 0
+        convergence_threshold = 0.001
+        while True:
+            num_iter += 1
+            for X in range(self.num_rounds):
+                for j in range(self.num_rounds):
+                    for b_idx, b in enumerate(self.action_space):
+                        Q[X][j][b_idx] = Fb[b_idx] * (R[X + 1][j + 1][b_idx] + V[X + 1][j + 1]) + \
+                                         (1.0 - Fb[b_idx]) * (R[X][j + 1][b_idx] + V[X][j + 1])
+
+            largest_diff = -float('inf')
+            for X in range(self.num_rounds + 1):
+                for j in range(self.num_rounds + 1):
+                    maxQ = max(Q[X][j])
+                    largest_diff = max(largest_diff, abs(V[X][j] - maxQ))
+                    V[X][j] = maxQ
+            if largest_diff <= convergence_threshold:
+                break
+
+        print(num_iter)
+        print(self.valuations)
+        print(self.action_space[Q[0][0].index(max(Q[0][0]))])
+        print(self.action_space[Q[0][1].index(max(Q[0][1]))])
+        print(self.action_space[Q[1][1].index(max(Q[1][1]))])
 
     def place_bid(self, current_round):
         """
