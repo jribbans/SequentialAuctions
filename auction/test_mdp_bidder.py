@@ -58,6 +58,7 @@ plt.show()
 """
 
 learner.valuations = [1, .1]
-learner.calc_Q()
+learner.calc_expected_rewards()
+learner.solve_mdp()
 print(learner.place_bid(1))
 print(learner.place_bid(2))

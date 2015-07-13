@@ -35,6 +35,17 @@ class MDPBidder(SimpleBidder):
         self.price_cdf = [[0] * self.num_price_samples for r in range(self.num_rounds)]
         self.price = [[0] * self.num_price_samples for r in range(self.num_rounds)]
         self.price_cdf_at_bid = [[0] * self.num_price_samples for r in range(self.num_rounds)]
+        # Parameters for solving the Markov Decision Process
+        # States: (X, j).  X goods won at round j
+        # Actions: b.  Bid b from the action space.
+        self.R = [[[0 for b in range(len(self.action_space))]
+                   for j in range(self.num_rounds + 1)]
+                  for X in range(self.num_rounds + 1)]
+        self.Q = [[[0 for b in range(len(self.action_space))]
+                   for j in range(self.num_rounds + 1)]
+                  for X in range(self.num_rounds + 1)]
+        self.V = [[0 for j in range(self.num_rounds + 1)]
+                  for X in range(self.num_rounds + 1)]
 
     def learn_auction_parameters(self, bidders, num_trials_per_action=100):
         """
@@ -97,9 +108,7 @@ class MDPBidder(SimpleBidder):
         """
         Calculate expected rewards using learned prices.
         """
-        R = [[[0 for b in range(len(self.action_space))]
-              for j in range(self.num_rounds + 1)]
-             for X in range(self.num_rounds + 1)]
+        # For states not corresponding to the end of an auction:
         # R((X, j-1), b, p) = \int r((X, j-1), b, p) f(p) dp
         for j in range(self.num_rounds):
             for b_idx, b in enumerate(self.action_space):
@@ -107,26 +116,30 @@ class MDPBidder(SimpleBidder):
                 to_integrate = [r[p_idx] * self.price_dist[j][p_idx]
                                 for p_idx, p in enumerate(self.price[j])]
                 for X in range(self.num_rounds + 1):
-                    R[X][j][b_idx] = scipy.integrate.trapz(to_integrate, self.price[j])
+                    self.R[X][j][b_idx] = scipy.integrate.trapz(to_integrate, self.price[j])
+
+        self.calc_end_state_rewards()
+
+    def calc_end_state_rewards(self):
+        """
+        Calculate rewards for states corresponding to the end of an auction.
+        """
         # R((X, n)) = v(X)
         for X in range(self.num_rounds + 1):
-            R[X][self.num_rounds] = [sum(self.valuations[:X])] * len(self.action_space)
+            self.R[X][self.num_rounds] = [sum(self.valuations[:X])] * len(self.action_space)
 
-        self.R = R
-
-    def calc_Q(self):
+    def solve_mdp(self):
         """
         Run value iteration and compute Q(s,a) values.
         """
-        self.calc_expected_rewards()
+        # Initialize all values to 0
+        self.Q = [[[0 for b in range(len(self.action_space))]
+                   for j in range(self.num_rounds + 1)]
+                  for X in range(self.num_rounds + 1)]
+        self.V = [[0 for j in range(self.num_rounds + 1)]
+                  for X in range(self.num_rounds + 1)]
 
         # Value iteration
-        Q = [[[0 for b in range(len(self.action_space))]
-              for j in range(self.num_rounds + 1)]
-             for X in range(self.num_rounds + 1)]
-        V = [[0 for j in range(self.num_rounds + 1)]
-             for X in range(self.num_rounds + 1)]
-
         num_iter = 0
         convergence_threshold = 0.00001
         while True:
@@ -134,21 +147,18 @@ class MDPBidder(SimpleBidder):
             for X in range(self.num_rounds):
                 for j in range(self.num_rounds):
                     for b_idx, b in enumerate(self.action_space):
-                        Q_win = self.price_cdf_at_bid[j][b_idx] * (self.R[X + 1][j + 1][b_idx] + V[X + 1][j + 1])
-                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * (self.R[X][j + 1][b_idx] + V[X][j + 1])
-                        Q[X][j][b_idx] = Q_win + Q_lose
+                        Q_win = self.price_cdf_at_bid[j][b_idx] * (self.R[X + 1][j + 1][b_idx] + self.V[X + 1][j + 1])
+                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * (self.R[X][j + 1][b_idx] + self.V[X][j + 1])
+                        self.Q[X][j][b_idx] = Q_win + Q_lose
 
             largest_diff = -float('inf')
             for X in range(self.num_rounds + 1):
                 for j in range(self.num_rounds + 1):
-                    maxQ = max(Q[X][j])
-                    largest_diff = max(largest_diff, abs(V[X][j] - maxQ))
-                    V[X][j] = maxQ
+                    maxQ = max(self.Q[X][j])
+                    largest_diff = max(largest_diff, abs(self.V[X][j] - maxQ))
+                    self.V[X][j] = maxQ
             if largest_diff <= convergence_threshold:
                 break
-
-        self.Q = Q
-        self.V = V
 
     def place_bid(self, current_round):
         """
