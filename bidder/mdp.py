@@ -8,10 +8,6 @@ import numpy
 import scipy.integrate
 import scipy.interpolate
 
-# Initialize random number seeds for repeatability
-random.seed(0)
-numpy.random.seed(0)
-
 
 class MDPBidder(SimpleBidder):
     """A bidder that learns how to bid using a Markov Decision Process.
