@@ -1,9 +1,8 @@
 """
-Implements a bidder that learns how to bid in the first round of an auction using Markov Decision Processes.
+Implements a bidder that learns how to bid using a Markov Decision Process.
 """
 from bidder.simple import SimpleBidder
 from auction.SequentialAuction import SequentialAuction
-import random
 import numpy
 import scipy.integrate
 import scipy.interpolate
@@ -126,7 +125,11 @@ class MDPBidder(SimpleBidder):
 
     def solve_mdp(self):
         """
-        Run value iteration and compute Q(s,a) values.
+        Run value iteration.
+
+        Q(s,a) = \sum_{s'} (T(s,a,s')*(R(s,a) + V(s')))
+        V(s) = max_a Q(s,a)
+        \pi(s) = argmax_a Q(s,a)
         """
         # Initialize all values to 0
         self.Q = [[[0 for b in range(len(self.action_space))]
@@ -138,23 +141,23 @@ class MDPBidder(SimpleBidder):
         # Value iteration
         num_iter = 0
         convergence_threshold = 0.00001
-        while True:
+        largest_diff_V = float('inf')
+        while largest_diff_V > convergence_threshold:
             num_iter += 1
+            # Update Q
             for X in range(self.num_rounds):
                 for j in range(self.num_rounds):
                     for b_idx, b in enumerate(self.action_space):
                         Q_win = self.price_cdf_at_bid[j][b_idx] * (self.R[X + 1][j + 1][b_idx] + self.V[X + 1][j + 1])
                         Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * (self.R[X][j + 1][b_idx] + self.V[X][j + 1])
                         self.Q[X][j][b_idx] = Q_win + Q_lose
-
-            largest_diff = -float('inf')
+            # Update V
+            largest_diff_V = -float('inf')
             for X in range(self.num_rounds + 1):
                 for j in range(self.num_rounds + 1):
                     maxQ = max(self.Q[X][j])
-                    largest_diff = max(largest_diff, abs(self.V[X][j] - maxQ))
+                    largest_diff = max(largest_diff_V, abs(self.V[X][j] - maxQ))
                     self.V[X][j] = maxQ
-            if largest_diff <= convergence_threshold:
-                break
 
     def place_bid(self, current_round):
         """
