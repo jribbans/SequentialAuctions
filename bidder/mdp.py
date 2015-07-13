@@ -112,6 +112,8 @@ class MDPBidder(SimpleBidder):
             for b_idx, b in enumerate(self.action_space):
                 R[X][self.num_rounds][b_idx] = sum(self.valuations[:X])
 
+        self.R = R
+
         # Value iteration
         Q = [[[0 for b in range(len(self.action_space))]
               for j in range(self.num_rounds + 1)]
@@ -120,7 +122,7 @@ class MDPBidder(SimpleBidder):
              for X in range(self.num_rounds + 1)]
 
         num_iter = 0
-        convergence_threshold = 0.001
+        convergence_threshold = 0.00001
         while True:
             num_iter += 1
             for X in range(self.num_rounds):
@@ -141,7 +143,6 @@ class MDPBidder(SimpleBidder):
 
         self.Q = Q
         self.V = V
-
 
     def place_bid(self, current_round):
         """
