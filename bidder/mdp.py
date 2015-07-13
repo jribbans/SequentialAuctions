@@ -93,7 +93,7 @@ class MDPBidder(SimpleBidder):
                     Fb[r][b_idx] = float(interp_price_cdf[r](b))
         self.price_cdf_at_bid = Fb
 
-    def calc_Q(self):
+    def calc_expected_rewards(self):
         """
         """
         R = [[[0 for b in range(len(self.action_space))]
@@ -114,6 +114,11 @@ class MDPBidder(SimpleBidder):
 
         self.R = R
 
+    def calc_Q(self):
+        """
+        """
+        self.calc_expected_rewards()
+
         # Value iteration
         Q = [[[0 for b in range(len(self.action_space))]
               for j in range(self.num_rounds + 1)]
@@ -128,8 +133,8 @@ class MDPBidder(SimpleBidder):
             for X in range(self.num_rounds):
                 for j in range(self.num_rounds):
                     for b_idx, b in enumerate(self.action_space):
-                        Q_win = self.price_cdf_at_bid[j][b_idx] * (R[X + 1][j + 1][b_idx] + V[X + 1][j + 1])
-                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * (R[X][j + 1][b_idx] + V[X][j + 1])
+                        Q_win = self.price_cdf_at_bid[j][b_idx] * (self.R[X + 1][j + 1][b_idx] + V[X + 1][j + 1])
+                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * (self.R[X][j + 1][b_idx] + V[X][j + 1])
                         Q[X][j][b_idx] = Q_win + Q_lose
 
             largest_diff = -float('inf')
