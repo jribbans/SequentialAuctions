@@ -1,11 +1,7 @@
 """
-Implements a bidder that learns how to bid using a Markov Decision Process.
+Abstract class that implements a bidder that learns how to bid using a Markov Decision Process.
 """
 from bidder.simple import SimpleBidder
-from auction.SequentialAuction import SequentialAuction
-import numpy
-import scipy.integrate
-import scipy.interpolate
 
 
 class MDPBidder(SimpleBidder):
@@ -42,86 +38,19 @@ class MDPBidder(SimpleBidder):
         self.V = [[0 for j in range(self.num_rounds + 1)]
                   for X in range(self.num_rounds + 1)]
 
-    def learn_auction_parameters(self, bidders, num_trials_per_action=100):
+    def learn_auction_parameters(self, bidders):
         """
-        Learn the highest bid of n - 1 bidders and the probability of winning.
+        Learn how to bid.
 
         :param bidders: List.  Bidders to learn from.
-        :param num_trials_per_action: Integer.  Number of times to test an action.
         """
-        win_count = {r: [0] * len(self.action_space) for r in range(self.num_rounds)}
-        prices = {r: [] for r in range(self.num_rounds)}
-        sa = SequentialAuction(bidders, self.num_rounds)
-        for a_idx, a in enumerate(self.action_space):
-            for t in range(num_trials_per_action):
-                # Have bidders sample new valuations
-                for bidder in bidders:
-                    bidder.valuations = bidder.make_valuations()
-                    bidder.reset()
-                # Run an auction
-                sa.bidders = bidders
-                sa.run()
-                # See if the action we are using leads to a win
-                for r in range(self.num_rounds):
-                    if max(sa.bids[r][:-1]) < a:
-                        win_count[r][a_idx] += 1
-                    elif max(sa.bids[r][:-1]) == a:
-                        # Increment based on how many bidders bid the same bid
-                        num_same_bid = sum(b == a for b in sa.bids[r][:-1])
-                        win_count[r][a_idx] += num_same_bid / self.num_bidders
-                    prices[r].append(max(sa.bids[r][:-1]))
-
-        prob_win = [[win_count[r][i] / num_trials_per_action
-                     for i in range(len(self.possible_types))]
-                    for r in range(self.num_rounds)]
-        self.prob_winning = prob_win
-        # Get the density and values associated with the density of the prices seen
-        # hist has n elements, and bin_edges has n+1 elements
-        for r in range(self.num_rounds):
-            hist, bin_edges = numpy.histogram(prices[r], self.num_price_samples, density=True)
-            cdf = numpy.cumsum(hist * numpy.diff(bin_edges))
-            price = [0.5 * (bin_edges[i] + bin_edges[i + 1]) for i in range(self.num_price_samples)]
-            self.price[r] = price
-            self.price_dist[r] = hist
-            self.price_cdf[r] = cdf
-
-        # Calculate the CDF of prices at points in the action space
-        interp_price_cdf = [scipy.interpolate.interp1d(self.price[r], self.price_cdf[r])
-                            for r in range(self.num_rounds)]
-        Fb = [[0] * len(self.action_space) for r in range(self.num_rounds)]
-        for r in range(self.num_rounds):
-            for b_idx, b in enumerate(self.action_space):
-                if b < min(self.price[r]):
-                    Fb[r][b_idx] = 0
-                elif b > max(self.price[r]):
-                    Fb[r][b_idx] = 1.0
-                else:
-                    Fb[r][b_idx] = float(interp_price_cdf[r](b))
-        self.price_cdf_at_bid = Fb
+        pass
 
     def calc_expected_rewards(self):
         """
         Calculate expected rewards using learned prices.
         """
-        # For states not corresponding to the end of an auction:
-        # R((X, j-1), b, p) = \int r((X, j-1), b, p) f(p) dp
-        for j in range(self.num_rounds):
-            for b_idx, b in enumerate(self.action_space):
-                r = [-p if p <= b else 0.0 for p_idx, p in enumerate(self.price[j])]
-                to_integrate = [r[p_idx] * self.price_dist[j][p_idx]
-                                for p_idx, p in enumerate(self.price[j])]
-                for X in range(self.num_rounds + 1):
-                    self.R[X][j][b_idx] = scipy.integrate.trapz(to_integrate, self.price[j])
-
-        self.calc_end_state_rewards()
-
-    def calc_end_state_rewards(self):
-        """
-        Calculate rewards for states corresponding to the end of an auction.
-        """
-        # R((X, n)) = v(X)
-        for X in range(self.num_rounds + 1):
-            self.R[X][self.num_rounds] = [sum(self.valuations[:X])] * len(self.action_space)
+        pass
 
     def solve_mdp(self):
         """
@@ -162,6 +91,8 @@ class MDPBidder(SimpleBidder):
     def place_bid(self, current_round):
         """
         Places a bid based on what the bidder has learned.
+
+        bid = argmax_a Q(s,a)
 
         :return: bid: Float.  The bid the bidder will place.
         """

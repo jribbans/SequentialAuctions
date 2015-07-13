@@ -1,6 +1,6 @@
 from auction.SequentialAuction import SequentialAuction
 from bidder.katzman import KatzmanBidder
-from bidder.mdp import MDPBidder
+from bidder.mdp_uai import MDPBidderUAI
 from bidder.menezes_monteiro import MenezesMonteiroBidder
 from bidder.simple import SimpleBidder
 from bidder.weber import WeberBidder
@@ -31,7 +31,7 @@ bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, 
 #           for i in range(num_bidders)]
 # bidders = [WeberBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 #           for i in range(num_bidders)]
-learner = MDPBidder(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 learner.learn_auction_parameters(bidders, num_trials_per_action)
 
 """
