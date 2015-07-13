@@ -142,21 +142,16 @@ class MDPBidder(SimpleBidder):
         self.Q = Q
         self.V = V
 
-        print(num_iter)
-        print(self.valuations)
-        print(V[1][1] - V[0][1])
-        print(V[1][2] - V[0][2])
-        print(V[2][2] - V[1][2])
-        for X in range(self.num_rounds + 1):
-            for j in range(self.num_rounds + 1):
-                print(X, j, V[X][j], Q[X][j].index(max(Q[X][j])))
 
+    def place_bid(self, current_round):
+        """
+        Places a bid based on what the bidder has learned.
 
-def place_bid(self, current_round):
-    """
-    Places a bid based on what the bidder has learned.
-
-    :return: bid: Float.  The bid the bidder will place.
-    """
-    r = current_round - 1
-    pass
+        :return: bid: Float.  The bid the bidder will place.
+        """
+        r = current_round - 1
+        maxQ = max(self.Q[self.num_goods_won][r])
+        argmaxQ = self.Q[self.num_goods_won][r].index(maxQ)
+        bid = self.action_space[argmaxQ]
+        self.bid[r] = bid
+        return bid

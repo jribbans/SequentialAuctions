@@ -59,3 +59,5 @@ plt.show()
 
 learner.valuations = [1, .1]
 learner.calc_Q()
+print(learner.place_bid(1))
+print(learner.place_bid(2))
