@@ -95,27 +95,28 @@ class MDPBidder(SimpleBidder):
 
     def calc_expected_rewards(self):
         """
+        Calculate expected rewards using learned prices.
         """
         R = [[[0 for b in range(len(self.action_space))]
               for j in range(self.num_rounds + 1)]
              for X in range(self.num_rounds + 1)]
         # R((X, j-1), b, p) = \int r((X, j-1), b, p) f(p) dp
-        for X in range(self.num_rounds + 1):
-            for j in range(self.num_rounds):
-                for b_idx, b in enumerate(self.action_space):
-                    r = [-p if p <= b else 0.0 for p_idx, p in enumerate(self.price[j])]
-                    to_integrate = [r[p_idx] * self.price_dist[j][p_idx]
-                                    for p_idx, p in enumerate(self.price[j])]
+        for j in range(self.num_rounds):
+            for b_idx, b in enumerate(self.action_space):
+                r = [-p if p <= b else 0.0 for p_idx, p in enumerate(self.price[j])]
+                to_integrate = [r[p_idx] * self.price_dist[j][p_idx]
+                                for p_idx, p in enumerate(self.price[j])]
+                for X in range(self.num_rounds + 1):
                     R[X][j][b_idx] = scipy.integrate.trapz(to_integrate, self.price[j])
         # R((X, n)) = v(X)
         for X in range(self.num_rounds + 1):
-            for b_idx, b in enumerate(self.action_space):
-                R[X][self.num_rounds][b_idx] = sum(self.valuations[:X])
+            R[X][self.num_rounds] = [sum(self.valuations[:X])] * len(self.action_space)
 
         self.R = R
 
     def calc_Q(self):
         """
+        Run value iteration and compute Q(s,a) values.
         """
         self.calc_expected_rewards()
 
@@ -157,7 +158,7 @@ class MDPBidder(SimpleBidder):
         """
         r = current_round - 1
         maxQ = max(self.Q[self.num_goods_won][r])
-        argmaxQ = self.Q[self.num_goods_won][r].index(maxQ)
-        bid = self.action_space[argmaxQ]
+        maxQ_idx = self.Q[self.num_goods_won][r].index(maxQ)
+        bid = self.action_space[maxQ_idx]
         self.bid[r] = bid
         return bid
