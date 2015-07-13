@@ -23,36 +23,39 @@ type_dist_disc = False
 
 num_trials_per_action = 100
 
-# bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-#           for i in range(num_bidders)]
+bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+           for i in range(num_bidders)]
 # bidders = [MenezesMonteiroBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 #           for i in range(num_bidders)]
-bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-           for i in range(num_bidders)]
+# bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+#           for i in range(num_bidders)]
 # bidders = [WeberBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 #           for i in range(num_bidders)]
 learner = MDPBidder(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-current_round = 1
-learner.calc_prob_winning(bidders, current_round, num_trials_per_action)
+learner.learn_auction_parameters(bidders, num_trials_per_action)
 
 """
-print("prob winning")
-for a_idx, a in enumerate(learner.action_space):
-    print(a, learner.prob_winning[current_round - 1][a_idx])
-print("price dist")
-for p_idx, p in enumerate(learner.price):
-    print(p, learner.price_dist[p_idx], learner.price_cdf[p_idx])
+for r in range(num_rounds):
+    print("Round", r)
+    print("prob winning")
+    for a_idx, a in enumerate(learner.action_space):
+        print(a, learner.prob_winning[r][a_idx])
+    print("price dist")
+    for p_idx, p in enumerate(learner.price[r]):
+        print(p, learner.price_dist[r][p_idx], learner.price_cdf[r][p_idx])
 """
 
 """
 plt.figure()
-plt.plot(learner.action_space, learner.prob_winning[current_round - 1], label='Prob Winning')
-plt.plot(learner.price, learner.price_dist, label='Price PDF')
-plt.plot(learner.price, learner.price_cdf, label='Price CDF')
+for r in range(num_rounds):
+    plt.plot(learner.action_space, learner.prob_winning[r], label='Prob Winning r = ' + str(r))
+    plt.plot(learner.price[r], learner.price_dist[r], label='Price PDF r =' + str(r))
+    plt.plot(learner.price[r], learner.price_cdf[r], label='Price CDF r = ' + str(r))
 plt.xlabel('Bid')
 plt.ylabel('Probability/Density')
 plt.legend()
 plt.show()
 """
 
+learner.valuations = [1, .1]
 learner.calc_Q()

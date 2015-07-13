@@ -3,7 +3,6 @@ Implements a bidder that learns how to bid in the first round of an auction usin
 """
 from bidder.simple import SimpleBidder
 from auction.SequentialAuction import SequentialAuction
-from copy import deepcopy
 import random
 import numpy
 import scipy.integrate
@@ -32,21 +31,20 @@ class MDPBidder(SimpleBidder):
         self.action_space = possible_types
         self.prob_winning = [[0.0] * len(self.action_space) for i in range(num_rounds)]
         self.num_price_samples = 101
-        self.price_dist = [0] * self.num_price_samples
-        self.price_cdf = [0] * self.num_price_samples
-        self.price = [0] * self.num_price_samples
+        self.price_dist = [[0] * self.num_price_samples for r in range(self.num_rounds)]
+        self.price_cdf = [[0] * self.num_price_samples for r in range(self.num_rounds)]
+        self.price = [[0] * self.num_price_samples for r in range(self.num_rounds)]
+        self.price_cdf_at_bid = [[0] * self.num_price_samples for r in range(self.num_rounds)]
 
-    def calc_prob_winning(self, bidders, current_round, num_trials_per_action=100):
+    def learn_auction_parameters(self, bidders, num_trials_per_action=100):
         """
-        Calculate the probability of winning against a set of bidders for each action in the action space.
+        Learn prices and their distributions of an auction.
 
         :param bidders: List.  Bidders to learn from.
-        :param current_round: Integer.  Round of interest.
         :param num_trials_per_action: Integer.  Number of times to test an action.
         """
-        r = current_round - 1
-        win_count = [0] * len(self.action_space)
-        prices = []
+        win_count = {r: [0] * len(self.action_space) for r in range(self.num_rounds)}
+        prices = {r: [] for r in range(self.num_rounds)}
         sa = SequentialAuction(bidders, self.num_rounds)
         for a_idx, a in enumerate(self.action_space):
             for t in range(num_trials_per_action):
@@ -58,25 +56,42 @@ class MDPBidder(SimpleBidder):
                 sa.bidders = bidders
                 sa.run()
                 # See if the action we are using leads to a win
-                if max(sa.bids[r]) < a:
-                    win_count[a_idx] += 1
-                elif max(sa.bids[0]) == a:
-                    # Increment based on how many bidders bid the same bid
-                    num_same_bid = sum(b == a for b in sa.bids[0])
-                    win_count[a_idx] += num_same_bid / self.num_bidders
-                # Keep track of prices
-                prices.append(sa.payments[r])
+                for r in range(self.num_rounds):
+                    if max(sa.bids[r]) < a:
+                        win_count[r][a_idx] += 1
+                    elif max(sa.bids[r]) == a:
+                        # Increment based on how many bidders bid the same bid
+                        num_same_bid = sum(b == a for b in sa.bids[r])
+                        win_count[r][a_idx] += num_same_bid / self.num_bidders
+                    prices[r].append(sa.payments[r])
 
-        prob_win = [win_count[i] / num_trials_per_action for i in range(len(self.possible_types))]
-        self.prob_winning[r] = prob_win
+        prob_win = [[win_count[r][i] / num_trials_per_action
+                     for i in range(len(self.possible_types))]
+                    for r in range(self.num_rounds)]
+        self.prob_winning = prob_win
         # Get the density and values associated with the density of the prices seen
         # hist has n elements, and bin_edges has n+1 elements
-        hist, bin_edges = numpy.histogram(prices, self.num_price_samples, density=True)
-        cdf = numpy.cumsum(hist * numpy.diff(bin_edges))
-        price = [0.5 * (bin_edges[i] + bin_edges[i + 1]) for i in range(self.num_price_samples)]
-        self.price = price
-        self.price_dist = hist
-        self.price_cdf = cdf
+        for r in range(self.num_rounds):
+            hist, bin_edges = numpy.histogram(prices[r], self.num_price_samples, density=True)
+            cdf = numpy.cumsum(hist * numpy.diff(bin_edges))
+            price = [0.5 * (bin_edges[i] + bin_edges[i + 1]) for i in range(self.num_price_samples)]
+            self.price[r] = price
+            self.price_dist[r] = hist
+            self.price_cdf[r] = cdf
+
+        # Calculate the CDF of prices at points in the action space
+        interp_price_cdf = [scipy.interpolate.interp1d(self.price[r], self.price_cdf[r])
+                            for r in range(self.num_rounds)]
+        Fb = [[0] * len(self.action_space) for r in range(self.num_rounds)]
+        for r in range(self.num_rounds):
+            for b_idx, b in enumerate(self.action_space):
+                if b < min(self.price[r]):
+                    Fb[r][b_idx] = 0
+                elif b > max(self.price[r]):
+                    Fb[r][b_idx] = 1.0
+                else:
+                    Fb[r][b_idx] = float(interp_price_cdf[r](b))
+        self.price_cdf_at_bid = Fb
 
     def calc_Q(self):
         """
@@ -88,33 +103,22 @@ class MDPBidder(SimpleBidder):
         for X in range(self.num_rounds + 1):
             for j in range(self.num_rounds):
                 for b_idx, b in enumerate(self.action_space):
-                    r = [-p if p <= b else 0.0 for p_idx, p in enumerate(self.price)]
-                    to_integrate = [r[p_idx] * self.price_dist[p_idx]
-                                    for p_idx, p in enumerate(self.price)]
-                    R[X][j][b_idx] = scipy.integrate.trapz(to_integrate, self.price)
+                    r = [-p if p <= b else 0.0 for p_idx, p in enumerate(self.price[j])]
+                    to_integrate = [r[p_idx] * self.price_dist[j][p_idx]
+                                    for p_idx, p in enumerate(self.price[j])]
+                    R[X][j][b_idx] = scipy.integrate.trapz(to_integrate, self.price[j])
         # R((X, n)) = v(X)
         for X in range(self.num_rounds + 1):
             for b_idx, b in enumerate(self.action_space):
-                R[X][-1][b_idx] = sum(self.valuations[:X])
+                R[X][self.num_rounds][b_idx] = sum(self.valuations[:X])
 
+        # Value iteration
         Q = [[[0 for b in range(len(self.action_space))]
               for j in range(self.num_rounds + 1)]
              for X in range(self.num_rounds + 1)]
         V = [[0 for j in range(self.num_rounds + 1)]
              for X in range(self.num_rounds + 1)]
 
-        # Calculate the CDF of prices at points in the action space
-        interp_price_cdf = scipy.interpolate.interp1d(self.price, self.price_cdf)
-        Fb = [0] * len(self.action_space)
-        for b_idx, b in enumerate(self.action_space):
-            if b < min(self.price):
-                Fb[b_idx] = 0
-            elif b > max(self.price):
-                Fb[b_idx] = 1.0
-            else:
-                Fb[b_idx] = float(interp_price_cdf(b))
-
-        # Value iteration
         num_iter = 0
         convergence_threshold = 0.001
         while True:
@@ -122,8 +126,9 @@ class MDPBidder(SimpleBidder):
             for X in range(self.num_rounds):
                 for j in range(self.num_rounds):
                     for b_idx, b in enumerate(self.action_space):
-                        Q[X][j][b_idx] = Fb[b_idx] * (R[X + 1][j + 1][b_idx] + V[X + 1][j + 1]) + \
-                                         (1.0 - Fb[b_idx]) * (R[X][j + 1][b_idx] + V[X][j + 1])
+                        Q_win = self.price_cdf_at_bid[j][b_idx] * (R[X + 1][j + 1][b_idx] + V[X + 1][j + 1])
+                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * (R[X][j + 1][b_idx] + V[X][j + 1])
+                        Q[X][j][b_idx] = Q_win + Q_lose
 
             largest_diff = -float('inf')
             for X in range(self.num_rounds + 1):
@@ -134,17 +139,24 @@ class MDPBidder(SimpleBidder):
             if largest_diff <= convergence_threshold:
                 break
 
+        self.Q = Q
+        self.V = V
+
         print(num_iter)
         print(self.valuations)
-        print(self.action_space[Q[0][0].index(max(Q[0][0]))])
-        print(self.action_space[Q[0][1].index(max(Q[0][1]))])
-        print(self.action_space[Q[1][1].index(max(Q[1][1]))])
+        print(V[1][1] - V[0][1])
+        print(V[1][2] - V[0][2])
+        print(V[2][2] - V[1][2])
+        for X in range(self.num_rounds + 1):
+            for j in range(self.num_rounds + 1):
+                print(X, j, V[X][j], Q[X][j].index(max(Q[X][j])))
 
-    def place_bid(self, current_round):
-        """
-        Places a bid based on what the bidder has learned.
 
-        :return: bid: Float.  The bid the bidder will place.
-        """
-        r = current_round - 1
-        pass
+def place_bid(self, current_round):
+    """
+    Places a bid based on what the bidder has learned.
+
+    :return: bid: Float.  The bid the bidder will place.
+    """
+    r = current_round - 1
+    pass
