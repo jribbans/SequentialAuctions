@@ -45,7 +45,7 @@ class MDPBidder(SimpleBidder):
 
     def learn_auction_parameters(self, bidders, num_trials_per_action=100):
         """
-        Learn prices and their distributions of an auction.
+        Learn the highest bid of n - 1 bidders and the probability of winning.
 
         :param bidders: List.  Bidders to learn from.
         :param num_trials_per_action: Integer.  Number of times to test an action.
@@ -64,13 +64,13 @@ class MDPBidder(SimpleBidder):
                 sa.run()
                 # See if the action we are using leads to a win
                 for r in range(self.num_rounds):
-                    if max(sa.bids[r]) < a:
+                    if max(sa.bids[r][:-1]) < a:
                         win_count[r][a_idx] += 1
-                    elif max(sa.bids[r]) == a:
+                    elif max(sa.bids[r][:-1]) == a:
                         # Increment based on how many bidders bid the same bid
-                        num_same_bid = sum(b == a for b in sa.bids[r])
+                        num_same_bid = sum(b == a for b in sa.bids[r][:-1])
                         win_count[r][a_idx] += num_same_bid / self.num_bidders
-                    prices[r].append(sa.payments[r])
+                    prices[r].append(max(sa.bids[r][:-1]))
 
         prob_win = [[win_count[r][i] / num_trials_per_action
                      for i in range(len(self.possible_types))]
