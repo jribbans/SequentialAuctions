@@ -41,8 +41,8 @@ for r in range(num_rounds):
     for a_idx, a in enumerate(learner.action_space):
         print(a, learner.prob_winning[r][a_idx])
     print("price dist")
-    for p_idx, p in enumerate(learner.price[r]):
-        print(p, learner.price_dist[r][p_idx], learner.price_cdf[r][p_idx])
+    for p_idx, p in enumerate(learner.price_prediction[r]):
+        print(p, learner.price_pdf[r][p_idx], learner.price_cdf[r][p_idx])
 """
 
 """
