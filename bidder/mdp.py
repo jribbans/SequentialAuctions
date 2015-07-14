@@ -84,9 +84,11 @@ class MDPBidder(SimpleBidder):
             largest_diff_V = -float('inf')
             for X in range(self.num_rounds + 1):
                 for j in range(self.num_rounds + 1):
-                    maxQ = max(self.Q[X][j])
-                    largest_diff = max(largest_diff_V, abs(self.V[X][j] - maxQ))
-                    self.V[X][j] = maxQ
+                    old_V = self.V[X][j]
+                    new_V = max(self.Q[X][j])
+                    self.V[X][j] = new_V
+                    largest_diff_V = max(largest_diff_V, abs(new_V - old_V))
+        print('Number of iterations used for Value Iteration =', num_iter)
 
     def place_bid(self, current_round):
         """
