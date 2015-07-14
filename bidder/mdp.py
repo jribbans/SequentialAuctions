@@ -22,9 +22,9 @@ class MDPBidder(SimpleBidder):
         self.action_space = possible_types
         self.prob_winning = [[0.0] * len(self.action_space) for i in range(num_rounds)]
         self.num_price_samples = 101
-        self.price_dist = [[0] * self.num_price_samples for r in range(self.num_rounds)]
+        self.price_pdf = [[0] * self.num_price_samples for r in range(self.num_rounds)]
         self.price_cdf = [[0] * self.num_price_samples for r in range(self.num_rounds)]
-        self.price = [[0] * self.num_price_samples for r in range(self.num_rounds)]
+        self.price_prediction = [[0] * self.num_price_samples for r in range(self.num_rounds)]
         self.price_cdf_at_bid = [[0] * self.num_price_samples for r in range(self.num_rounds)]
         # Parameters for solving the Markov Decision Process
         # States: (X, j).  X goods won at round j
