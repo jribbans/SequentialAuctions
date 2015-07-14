@@ -102,7 +102,7 @@ class MDPBidder(SimpleBidder):
         maxQ = max(self.Q[self.num_goods_won][r])
         maxQ_idxs = [i for i in range(len(self.Q[self.num_goods_won][r]))
                      if self.Q[self.num_goods_won][r][i] == maxQ]
-        possible_bids = [self.action_space[i] for i in range(len(maxQ_idxs))]
+        possible_bids = [self.action_space[idx] for idx in maxQ_idxs]
         bid = min(possible_bids)
         self.bid[r] = bid
         return bid
