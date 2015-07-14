@@ -59,23 +59,35 @@ class MDPBidderUAI(MDPBidder):
                      for i in range(len(self.possible_types))]
                     for r in range(self.num_rounds)]
         self.prob_winning = prob_win
-        # Get the density and values associated with the density of the prices seen
-        # hist has n elements, and bin_edges has n+1 elements.  Assume that prices are drawn from
-        # a continuous distribution.
+
+        interp_cdf = []
         for r in range(self.num_rounds):
-            hist, bin_edges = numpy.histogram(prices[r], self.num_price_samples, density=True)
-            # Since we have a density function, we should be integrating, but with uniformly spaced
-            # bin edges, this should give us the same result
-            cdf = numpy.cumsum(hist * numpy.diff(bin_edges))
-            # Discretize the bins by taking an average to get representative price samples.
-            price = [0.5 * (bin_edges[i] + bin_edges[i + 1]) for i in range(self.num_price_samples)]
-            self.price[r] = price
-            self.price_dist[r] = hist
+            prices[r].sort()
+            # Let N = num price pts - 1
+            # cdf = 0/N, 1/N, ..., N/N
+            cdf_of_prices = [i / (len(prices[r]) - 1) for i in range(len(prices[r]))]
+            interp_cdf.append(scipy.interpolate.interp1d(prices[r], cdf_of_prices))
+            # Sample from the N pts
+            sampled_prices = numpy.linspace(prices[r][0], prices[r][-2], self.num_price_samples).tolist()
+            # PDF = rise / run of CDF
+            pdf = []
+            cdf = []
+            for i in range(self.num_price_samples - 1):
+                rise = interp_cdf[r](sampled_prices[i + 1]) - interp_cdf[r](sampled_prices[i])
+                run = sampled_prices[i + 1] - sampled_prices[i]
+                pdf_val = float(rise / run)
+                pdf.append(pdf_val)
+                cdf.append(float(interp_cdf[r](sampled_prices[i])))
+            # last point.  Go back a few points to avoid unusually large numbers
+            rise = 1 - interp_cdf[r](sampled_prices[-3])
+            run = prices[r][-1] - sampled_prices[-3]
+            pdf_val = float(rise / run)
+            pdf.append(pdf_val)
+            cdf.append(float(interp_cdf[r](sampled_prices[-1])))
+            self.price[r] = sampled_prices
+            self.price_dist[r] = pdf
             self.price_cdf[r] = cdf
 
-        # Calculate the CDF of prices at points in the action space
-        interp_price_cdf = [scipy.interpolate.interp1d(self.price[r], self.price_cdf[r])
-                            for r in range(self.num_rounds)]
         Fb = [[0] * len(self.action_space) for r in range(self.num_rounds)]
         for r in range(self.num_rounds):
             for b_idx, b in enumerate(self.action_space):
@@ -84,7 +96,7 @@ class MDPBidderUAI(MDPBidder):
                 elif b > max(self.price[r]):
                     Fb[r][b_idx] = 1.0
                 else:
-                    Fb[r][b_idx] = float(interp_price_cdf[r](b))
+                    Fb[r][b_idx] = float(interp_cdf[r](b))
         self.price_cdf_at_bid = Fb
 
     def calc_expected_rewards(self):
