@@ -100,7 +100,9 @@ class MDPBidder(SimpleBidder):
         """
         r = current_round - 1
         maxQ = max(self.Q[self.num_goods_won][r])
-        maxQ_idx = self.Q[self.num_goods_won][r].index(maxQ)
-        bid = self.action_space[maxQ_idx]
+        maxQ_idxs = [i for i in range(len(self.Q[self.num_goods_won][r]))
+                     if self.Q[self.num_goods_won][r][i] == maxQ]
+        possible_bids = [self.action_space[i] for i in range(len(maxQ_idxs))]
+        bid = min(possible_bids)
         self.bid[r] = bid
         return bid
