@@ -49,8 +49,8 @@ for r in range(num_rounds):
 plt.figure()
 for r in range(num_rounds):
     plt.plot(learner.action_space, learner.prob_winning[r], label='Prob Winning r = ' + str(r))
-    plt.plot(learner.price[r], learner.price_dist[r], label='Price PDF r =' + str(r))
-    plt.plot(learner.price[r], learner.price_cdf[r], label='Price CDF r = ' + str(r))
+    plt.plot(learner.price_prediction[r], learner.price_pdf[r], label='Price PDF r =' + str(r))
+    plt.plot(learner.price_prediction[r], learner.price_cdf[r], label='Price CDF r = ' + str(r))
 plt.xlabel('Bid')
 plt.ylabel('Probability/Density')
 plt.legend()
