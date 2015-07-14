@@ -49,7 +49,7 @@ for r in range(num_rounds):
 plt.figure()
 for r in range(num_rounds):
     plt.plot(learner.action_space, learner.prob_winning[r], label='Prob Winning r = ' + str(r))
-    plt.plot(learner.price_prediction[r], learner.price_pdf[r], label='Price PDF r =' + str(r))
+    # plt.plot(learner.price_prediction[r], learner.price_pdf[r], label='Price PDF r =' + str(r))
     plt.plot(learner.price_prediction[r], learner.price_cdf[r], label='Price CDF r = ' + str(r))
 plt.xlabel('Bid')
 plt.ylabel('Probability/Density')
@@ -57,13 +57,28 @@ plt.legend()
 plt.show()
 """
 
-learner.valuations = [1, .1]
-learner.calc_expected_rewards()
-learner.solve_mdp()
-print(learner.place_bid(1))
-print(learner.place_bid(2))
-learner.valuations = [1, .9]
-learner.calc_end_state_rewards()
-learner.solve_mdp()
-print(learner.place_bid(1))
-print(learner.place_bid(2))
+bidders[0].reset()
+b0 = [0] * len(bidders[0].possible_types)
+lb0 = [0] * len(learner.possible_types)
+for t_idx, t in enumerate(learner.possible_types):
+    bidders[0].valuations = [t, t / 2.0]
+    learner.valuations = [t, t / 2.0]
+    if t_idx == 0:
+        learner.calc_expected_rewards()
+    else:
+        learner.calc_end_state_rewards()
+    learner.solve_mdp()
+    b20 = learner.place_bid(2)
+    learner.num_goods_won += 1
+    b21 = learner.place_bid(2)
+    learner.num_goods_won = 0
+    print(t, learner.place_bid(1), b20, b21)
+    b0[t_idx] = bidders[0].place_bid(1)
+    lb0[t_idx] = learner.place_bid(1)
+
+plt.figure()
+plt.plot(possible_types, b0, label='Katzman')
+plt.plot(possible_types, lb0, label='MDP')
+plt.xlabel('Valuation')
+plt.ylabel('Bid')
+plt.show()
