@@ -18,8 +18,11 @@ num_bidders = 2
 
 # Values in possible_types must be increasing.
 possible_types = [i / 100.0 for i in range(101)]
-type_dist = [1.0] * len(possible_types)
 type_dist_disc = False
+if type_dist_disc:
+    type_dist = [1.0 / len(possible_types)] * len(possible_types)
+else:
+    type_dist = [1.0] * len(possible_types)
 
 num_trials_per_action = 100
 
