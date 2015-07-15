@@ -9,6 +9,7 @@ from auction.SequentialAuction import SequentialAuction
 import numpy
 import scipy.integrate
 import scipy.interpolate
+from scipy.stats import bernoulli
 
 
 class MDPBidderUAI(MDPBidder):
@@ -34,6 +35,13 @@ class MDPBidderUAI(MDPBidder):
         :param bidders: List.  Bidders to learn from.
         :param num_trials_per_action: Integer.  Number of times to test an action.
         """
+        # exp_payment[X][j]
+        sa_counter = [[[0 for b in range(len(self.action_space))]
+                       for j in range(self.num_rounds + 1)]
+                      for X in range(self.num_rounds + 1)]
+        exp_payment = [[[0 for b in range(len(self.action_space))]
+                        for j in range(self.num_rounds + 1)]
+                       for X in range(self.num_rounds + 1)]
         win_count = {r: [0] * len(self.action_space) for r in range(self.num_rounds)}
         highest_other_bid = {r: [] for r in range(self.num_rounds)}
         sa = SequentialAuction(bidders, self.num_rounds)
@@ -46,14 +54,28 @@ class MDPBidderUAI(MDPBidder):
                 # Run an auction
                 sa.run()
                 # See if the action we are using leads to a win
+                num_won = 0
                 for r in range(self.num_rounds):
+                    sa_counter[num_won][r][a_idx] += 1
                     if max(sa.bids[r][:-1]) < a:
                         win_count[r][a_idx] += 1
+                        exp_payment[num_won][r][a_idx] -= max(sa.bids[r][:-1])
+                        num_won += 1
                     elif max(sa.bids[r][:-1]) == a:
                         # Increment based on how many bidders bid the same bid
                         num_same_bid = sum(b == a for b in sa.bids[r][:-1])
-                        win_count[r][a_idx] += num_same_bid / self.num_bidders
+                        prob_winning_tie = num_same_bid / self.num_bidders
+                        win_count[r][a_idx] += prob_winning_tie
+                        exp_payment[num_won][r][a_idx] -= max(sa.bids[r][:-1]) * prob_winning_tie
+                        num_won += bernoulli.rvs(prob_winning_tie)
                     highest_other_bid[r].append(max(sa.bids[r][:-1]))
+
+        for X in range(self.num_rounds):
+            for j in range(self.num_rounds):
+                for a in range(len(self.action_space)):
+                    if sa_counter[X][j][a] > 0:
+                        exp_payment[X][j][a] /= sa_counter[X][j][a]
+        self.exp_payment = exp_payment
 
         prob_win = [[win_count[r][i] / num_trials_per_action
                      for i in range(len(self.possible_types))]
@@ -114,7 +136,6 @@ class MDPBidderUAI(MDPBidder):
             self.price_prediction[r] = sampled_prices
             self.price_pdf[r] = pdf[1:-1]
             self.price_cdf[r] = emp_cdf[1:-1]
-
 
         # Calculate the probability of exceeding a predicted price for each action this bidder can perform.
         Fb = [[0] * len(self.action_space) for r in range(self.num_rounds)]
