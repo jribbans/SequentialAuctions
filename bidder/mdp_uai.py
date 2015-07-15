@@ -10,6 +10,7 @@ import numpy
 import scipy.integrate
 import scipy.interpolate
 from scipy.stats import bernoulli
+import math
 
 
 class MDPBidderUAI(MDPBidder):
@@ -128,7 +129,15 @@ class MDPBidderUAI(MDPBidder):
             pdf = [0] * len(bin_edges)
             for i in range(1, len(pdf) - 1):
                 p = numpy.polyfit(mean_binned_val[i - 1:i + 2], emp_cdf[i - 1:i + 2], 1).tolist()
-                pdf[i] = p[0]
+                if math.isnan(p[0]):
+                    dy = emp_cdf[i] - emp_cdf[i - 1]
+                    dx = mean_binned_val[i] - mean_binned_val[i - 1]
+                    if (dx <= 1e-5):
+                        pdf[i] = 0
+                    else:
+                        pdf[i] = dy / dx
+                else:
+                    pdf[i] = p[0]
 
             # The price points we store will be all the values except for the first and last.
             sampled_prices = mean_binned_val[1:-1]
@@ -148,6 +157,8 @@ class MDPBidderUAI(MDPBidder):
                     Fb[r][b_idx] = 1.0
                 else:
                     Fb[r][b_idx] = float(interp_cdf[r](b))
+                if math.isnan(Fb[r][b_idx]):
+                    Fb[r][b_idx] = 0.0
         self.price_cdf_at_bid = Fb
 
     def calc_expected_rewards(self):
