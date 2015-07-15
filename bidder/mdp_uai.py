@@ -60,33 +60,61 @@ class MDPBidderUAI(MDPBidder):
                     for r in range(self.num_rounds)]
         self.prob_winning = prob_win
 
-        # Calculate the distribution of predicted prices
-        # We have a total of N pts, 0 to N-1.  Calculate the distribution for pts 1 to N-2.
-        # Since N is large, we shouldn't be losing too much doing this.
+        # Calculate the CDF and PDF of the price distribution by building a histogram
         interp_cdf = []
         interp_pdf = []
         for r in range(self.num_rounds):
             highest_other_bid[r].sort()
-            # 0 / (N-1), 1 / (N-1), ..., (N-1)/(N-1)
-            cdf_of_prices = [i / (len(highest_other_bid[r]) - 1) for i in range(len(highest_other_bid[r]))]
-            # Compute PDF for all but the end points
-            pdf_of_prices = [0] * len(highest_other_bid[r])
-            for i in range(1, len(pdf_of_prices) - 1):
-                # PDF is the derivative of CDF, so the slope of a line fit in a region of the CDF = PDF
-                # Degree 1 polynomial fit: p[0] x + p[1]
-                p = numpy.polyfit(highest_other_bid[r][i - 1:i + 2], cdf_of_prices[i - 1:i + 2], 1).tolist()
-                pdf_of_prices[i] = p[0]
-                # Simpler method: find the slope between points i-1 and i+1
-                # rise = cdf_of_prices[i + 1] - cdf_of_prices[i - 1]
-                # run = highest_other_bid[r][i + 1] - highest_other_bid[r][i - 1]
-                # pdf_of_prices[i] = rise / run
-            interp_pdf.append(scipy.interpolate.interp1d(highest_other_bid[r][1:-1], pdf_of_prices[1:-1]))
-            interp_cdf.append(scipy.interpolate.interp1d(highest_other_bid[r][1:-1], cdf_of_prices[1:-1]))
-            sampled_prices = numpy.linspace(highest_other_bid[r][1], highest_other_bid[r][-2],
-                                            self.num_price_samples).tolist()
+            # If we are dealing with discrete bidder types, the space of possible bids and prices is finite,
+            # so just use what we see as bin edges.  Otherwise, divide the range of bids into bins
+            if self.type_dist_disc:
+                unique_bids = list(set(highest_other_bid[r]))
+                unique_bids.sort()
+                bin_edges = unique_bids
+            else:
+                bid_range = highest_other_bid[r][-1] - highest_other_bid[r][0]
+                bin_width = bid_range / (self.num_price_samples + 2)
+                bin_edges = [bin_width * i for i in range(1, self.num_price_samples + 3)]
+                # Avoid numerical issues.  The last bin edge should be exactly the largest bid observed.
+                bin_edges[-1] = highest_other_bid[r][-1]
+
+            # Bin the values
+            hist = {e: [] for e in bin_edges}
+            idx = 0
+            for b in highest_other_bid[r]:
+                if bin_edges[idx] >= b:
+                    hist[bin_edges[idx]].append(b)
+                else:
+                    while bin_edges[idx] < b:
+                        idx += 1
+                    hist[bin_edges[idx]].append(b)
+
+            # Calculate the average bid in each bin and the CDF
+            mean_binned_val = [0] * len(bin_edges)
+            emp_cdf = [0] * len(bin_edges)
+            count = [len(hist[bin_edges[i]]) for i in range(len(bin_edges))]
+            for e_idx, e in enumerate(bin_edges):
+                if len(hist[e]) > 0:
+                    mean_binned_val[e_idx] = sum(hist[e]) / len(hist[e])
+                emp_cdf[e_idx] = sum(count[:e_idx + 1])
+            # Divide the count so that we have a proper CDF.  The last value should be 1.
+            for e_idx in range(len(bin_edges)):
+                emp_cdf[e_idx] /= emp_cdf[-1]
+
+            # Calculate the PDF of all points except for the first and last.
+            pdf = [0] * len(bin_edges)
+            for i in range(1, len(pdf) - 1):
+                p = numpy.polyfit(mean_binned_val[i - 1:i + 2], emp_cdf[i - 1:i + 2], 1).tolist()
+                pdf[i] = p[0]
+
+            # The price points we store will be all the values except for the first and last.
+            sampled_prices = mean_binned_val[1:-1]
+            interp_pdf.append(scipy.interpolate.interp1d(sampled_prices, pdf[1:-1]))
+            interp_cdf.append(scipy.interpolate.interp1d(sampled_prices, emp_cdf[1:-1]))
             self.price_prediction[r] = sampled_prices
-            self.price_pdf[r] = interp_pdf[r](sampled_prices).tolist()
-            self.price_cdf[r] = interp_cdf[r](sampled_prices).tolist()
+            self.price_pdf[r] = pdf[1:-1]
+            self.price_cdf[r] = emp_cdf[1:-1]
+
 
         # Calculate the probability of exceeding a predicted price for each action this bidder can perform.
         Fb = [[0] * len(self.action_space) for r in range(self.num_rounds)]
