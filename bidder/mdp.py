@@ -56,15 +56,15 @@ class MDPBidder(SimpleBidder):
         """
         Run value iteration.
 
-        Q(s,a) = R(s,a) + \sum_{s'} (T(s,a,s')*V(s'))
+        Q(s,a) = \sum_{s'} (T(s,a,s')*(R(s,a,s') + V(s'))
         V(s) = max_a Q(s,a)
         \pi(s) = argmax_a Q(s,a)
         """
         # Initialize all values to Rewards
         for X in range(self.num_rounds + 1):
             for j in range(self.num_rounds + 1):
-                self.V[X][j] = self.R[X][j][0]
-                self.Q[X][j] = [self.R[X][j][a] for a in range(len(self.action_space))]
+                self.V[X][j] = 0
+                self.Q[X][j] = [0] * len(self.action_space)
 
         # Value iteration
         num_iter = 0
@@ -76,9 +76,9 @@ class MDPBidder(SimpleBidder):
             for X in range(self.num_rounds):
                 for j in range(self.num_rounds):
                     for b_idx, b in enumerate(self.action_space):
-                        Q_win = self.price_cdf_at_bid[j][b_idx] * self.V[X + 1][j + 1]
-                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * self.V[X][j + 1]
-                        self.Q[X][j][b_idx] = self.R[X][j][b_idx] + Q_win + Q_lose
+                        Q_win = self.price_cdf_at_bid[j][b_idx] * (self.R[X + 1][j + 1][b_idx] + self.V[X + 1][j + 1])
+                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * (self.R[X][j + 1][b_idx] + self.V[X][j + 1])
+                        self.Q[X][j][b_idx] = Q_win + Q_lose
 
             # Update V
             largest_diff_V = -float('inf')
