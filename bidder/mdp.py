@@ -60,7 +60,7 @@ class MDPBidder(SimpleBidder):
         V(s) = max_a Q(s,a)
         \pi(s) = argmax_a Q(s,a)
         """
-        # Initialize all values to Rewards
+        # Initialize all values to 0
         for X in range(self.num_rounds + 1):
             for j in range(self.num_rounds + 1):
                 self.V[X][j] = 0
