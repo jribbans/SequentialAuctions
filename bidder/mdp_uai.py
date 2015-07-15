@@ -77,8 +77,8 @@ class MDPBidderUAI(MDPBidder):
                         exp_payment[X][j][a] /= sa_counter[X][j][a]
         self.exp_payment = exp_payment
 
-        prob_win = [[win_count[r][i] / num_trials_per_action
-                     for i in range(len(self.possible_types))]
+        prob_win = [[win_count[r][a] / num_trials_per_action
+                     for a in range(len(self.action_space))]
                     for r in range(self.num_rounds)]
         self.prob_winning = prob_win
 
