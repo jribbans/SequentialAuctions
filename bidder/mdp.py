@@ -56,7 +56,7 @@ class MDPBidder(SimpleBidder):
         """
         Run value iteration.
 
-        Q(s,a) = \sum_{s'} (T(s,a,s')*(R(s,a,s') + V(s'))
+        Q(s,a) = R(s,a) + \sum_{s'} (T(s,a,s')*V(s'))
         V(s) = max_a Q(s,a)
         \pi(s) = argmax_a Q(s,a)
         """
@@ -78,22 +78,19 @@ class MDPBidder(SimpleBidder):
             # Update Q
             for X in range(self.num_rounds):
                 for j in range(self.num_rounds):
-                    # Bidder at round j can't have more than j goods
-                    if X <= j:
-                        for b_idx, b in enumerate(self.action_space):
-                            Q_win = self.price_cdf_at_bid[j][b_idx] * (self.R[X][j][b_idx] + self.V[X + 1][j + 1])
-                            Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * (0.0 + self.V[X][j + 1])
-                            self.Q[X][j][b_idx] = Q_win + Q_lose
+                    for b_idx, b in enumerate(self.action_space):
+                        Q_win = self.price_cdf_at_bid[j][b_idx] * self.V[X + 1][j + 1]
+                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * self.V[X][j + 1]
+                        self.Q[X][j][b_idx] = self.R[X][j][b_idx] + Q_win + Q_lose
 
             # Update V
             largest_diff_V = -float('inf')
             for X in range(self.num_rounds):
                 for j in range(self.num_rounds):
-                    if X <= j:
-                        old_V = self.V[X][j]
-                        new_V = max(self.Q[X][j])
-                        self.V[X][j] = new_V
-                        largest_diff_V = max(largest_diff_V, abs(new_V - old_V))
+                    old_V = self.V[X][j]
+                    new_V = max(self.Q[X][j])
+                    self.V[X][j] = new_V
+                    largest_diff_V = max(largest_diff_V, abs(new_V - old_V))
 
     def place_bid(self, current_round):
         """
