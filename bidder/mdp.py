@@ -60,16 +60,39 @@ class MDPBidder(SimpleBidder):
         V(s) = max_a Q(s,a)
         \pi(s) = argmax_a Q(s,a)
         """
-        # Initialize all values to 0
-        for X in range(self.num_rounds + 1):
-            for j in range(self.num_rounds + 1):
-                self.V[X][j] = 0
-                self.Q[X][j] = [0] * len(self.action_space)
+        self.V, self.Q = self.value_iteration()
+        # self.V, self.Q = self.value_iteration_backwards_induction()
+        """
+        # Compare value iteration and the backwards induction method.
+        V1, Q1 = self.value_iteration()
+        V2, Q2 = self.value_iteration()
+        V_same = True
+        Q_same = True
+        for X in range(self.num_rounds):
+            for j in range(self.num_rounds):
+                V_same = V_same & (abs(V1[X][j] - V2[X][j]) <= 0.001)
+                for b_idx, b in enumerate(self.action_space):
+                    Q_same = Q_same & (abs(Q1[X][j][b_idx] - Q2[X][j][b_idx]) <= 0.001)
+        print(V_same, Q_same)
+        """
 
-        for X in range(self.num_rounds + 1):
-            self.V[X][self.num_rounds] = self.R[X][self.num_rounds][0]
+    def value_iteration(self):
+        """
+        Solve the MDP using value iteration.
 
-        # Value iteration
+        :return: V: List.  V-values
+        :return: Q: List.  Q-values.
+        """
+        # Initialize
+        Q = [[[0 for b in range(len(self.action_space))]
+              for j in range(self.num_rounds + 1)]
+             for X in range(self.num_rounds + 1)]
+        V = [[0 for j in range(self.num_rounds + 1)]
+             for X in range(self.num_rounds + 1)]
+        for X in range(self.num_rounds + 1):
+            V[X][self.num_rounds] = self.R[X][self.num_rounds][0]
+
+        # Solve
         num_iter = 0
         convergence_threshold = 0.00001
         largest_diff_V = float('inf')
@@ -79,18 +102,47 @@ class MDPBidder(SimpleBidder):
             for X in range(self.num_rounds):
                 for j in range(self.num_rounds):
                     for b_idx, b in enumerate(self.action_space):
-                        Q_win = self.price_cdf_at_bid[j][b_idx] * self.V[X + 1][j + 1]
-                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * self.V[X][j + 1]
-                        self.Q[X][j][b_idx] = self.R[X][j][b_idx] + Q_win + Q_lose
+                        Q_win = self.price_cdf_at_bid[j][b_idx] * V[X + 1][j + 1]
+                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * V[X][j + 1]
+                        Q[X][j][b_idx] = self.R[X][j][b_idx] + Q_win + Q_lose
 
             # Update V
             largest_diff_V = -float('inf')
             for X in range(self.num_rounds):
                 for j in range(self.num_rounds):
-                    old_V = self.V[X][j]
-                    new_V = max(self.Q[X][j])
-                    self.V[X][j] = new_V
+                    old_V = V[X][j]
+                    new_V = max(Q[X][j])
+                    V[X][j] = new_V
                     largest_diff_V = max(largest_diff_V, abs(new_V - old_V))
+
+        return V, Q
+
+    def value_iteration_backwards_induction(self):
+        """
+        Solve the MDP using backwards induction value iteration.
+
+        :return: V: List.  V-values
+        :return: Q: List.  Q-values.
+        """
+        # Initialize
+        Q = [[[0 for b in range(len(self.action_space))]
+              for j in range(self.num_rounds + 1)]
+             for X in range(self.num_rounds + 1)]
+        V = [[0 for j in range(self.num_rounds + 1)]
+             for X in range(self.num_rounds + 1)]
+        for X in range(self.num_rounds + 1):
+            V[X][self.num_rounds] = self.R[X][self.num_rounds][0]
+
+        # Solve
+        for X in reversed(range(self.num_rounds)):
+            for j in reversed(range(self.num_rounds)):
+                for b_idx, b in enumerate(self.action_space):
+                    Q_win = self.price_cdf_at_bid[j][b_idx] * V[X + 1][j + 1]
+                    Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * V[X][j + 1]
+                    Q[X][j][b_idx] = self.R[X][j][b_idx] + Q_win + Q_lose
+                V[X][j] = max(Q[X][j])
+
+        return V, Q
 
     def place_bid(self, current_round):
         """
