@@ -56,19 +56,20 @@ class MDPBidderUAI(MDPBidder):
                 # See if the action we are using leads to a win
                 num_won = 0
                 for r in range(self.num_rounds):
+                    largest_bid_amongst_n_minus_1 = max(sa.bids[r][:-1])
                     sa_counter[num_won][r][a_idx] += 1
-                    if max(sa.bids[r][:-1]) < a:
+                    if largest_bid_amongst_n_minus_1 < a:
                         win_count[r][a_idx] += 1
-                        exp_payment[num_won][r][a_idx] -= max(sa.bids[r][:-1])
+                        exp_payment[num_won][r][a_idx] -= largest_bid_amongst_n_minus_1
                         num_won += 1
-                    elif max(sa.bids[r][:-1]) == a:
+                    elif largest_bid_amongst_n_minus_1 == a:
                         # Increment based on how many bidders bid the same bid
                         num_same_bid = sum(b == a for b in sa.bids[r][:-1])
                         prob_winning_tie = num_same_bid / self.num_bidders
                         win_count[r][a_idx] += prob_winning_tie
-                        exp_payment[num_won][r][a_idx] -= max(sa.bids[r][:-1]) * prob_winning_tie
+                        exp_payment[num_won][r][a_idx] -= largest_bid_amongst_n_minus_1 * prob_winning_tie
                         num_won += bernoulli.rvs(prob_winning_tie)
-                    highest_other_bid[r].append(max(sa.bids[r][:-1]))
+                    highest_other_bid[r].append(largest_bid_amongst_n_minus_1)
 
         for X in range(self.num_rounds):
             for j in range(self.num_rounds):
