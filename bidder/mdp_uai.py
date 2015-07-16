@@ -11,6 +11,7 @@ import scipy.integrate
 import scipy.interpolate
 from scipy.stats import bernoulli
 import math
+import random
 
 
 class MDPBidderUAI(MDPBidder):
@@ -59,36 +60,36 @@ class MDPBidderUAI(MDPBidder):
                              for X in range(self.num_rounds)]
 
         sa = SequentialAuction(bidders, self.num_rounds)
-        # See if the action we are using leads to a win in each round
-        for a_idx, a in enumerate(self.action_space):
-            for t in range(num_mc):
-                # Have bidders sample new valuations
-                for bidder in bidders:
-                    bidder.valuations = bidder.make_valuations()
-                    bidder.reset()
-                # Run an auction
-                sa.run()
-                num_won = 0
-                for r in range(self.num_rounds):
-                    largest_bid_amongst_n_minus_1 = max(sa.bids[r][:-1])
-                    highest_other_bid[num_won][r].append(largest_bid_amongst_n_minus_1)
-                    sa_counter[num_won][r][a_idx] += 1
-                    if largest_bid_amongst_n_minus_1 < a:
-                        win_count[num_won][r][a_idx] += 1
-                        exp_payment[num_won][r][a_idx] -= largest_bid_amongst_n_minus_1
-                        sas_counter[num_won][r][a_idx][num_won + 1][r + 1] += 1
-                        num_won += 1
-                    elif largest_bid_amongst_n_minus_1 == a:
-                        # Increment based on how many bidders bid the same bid
-                        num_same_bid = sum(b == a for b in sa.bids[r][:-1])
-                        prob_winning_tie = num_same_bid / self.num_bidders
-                        win_count[num_won][r][a_idx] += prob_winning_tie
-                        exp_payment[num_won][r][a_idx] -= largest_bid_amongst_n_minus_1 * prob_winning_tie
-                        won_this_round = bernoulli.rvs(prob_winning_tie)
-                        sas_counter[num_won][r][a_idx][num_won + won_this_round][r + 1] += 1
-                        num_won += won_this_round
-                    else:
-                        sas_counter[num_won][r][a_idx][num_won][r + 1] += 1
+        for t in range(num_mc):
+            # Refresh bidders
+            for bidder in bidders:
+                bidder.valuations = bidder.make_valuations()
+                bidder.reset()
+            # Run an auction and see how randomly sampled actions would perform against n - 1 bidders
+            sa.run()
+            num_won = 0
+            for j in range(self.num_rounds):
+                largest_bid_amongst_n_minus_1 = max(sa.bids[j][:-1])
+                highest_other_bid[num_won][j].append(largest_bid_amongst_n_minus_1)
+                a_idx = random.randint(0, len(self.action_space) - 1)
+                a = self.action_space[a_idx]
+                sa_counter[num_won][j][a_idx] += 1
+                if largest_bid_amongst_n_minus_1 < a:
+                    win_count[num_won][j][a_idx] += 1
+                    exp_payment[num_won][j][a_idx] -= largest_bid_amongst_n_minus_1
+                    sas_counter[num_won][j][a_idx][num_won + 1][j + 1] += 1
+                    num_won += 1
+                elif largest_bid_amongst_n_minus_1 == a:
+                    # Increment based on how many bidders bid the same bid
+                    num_same_bid = sum(b == a for b in sa.bids[j][:-1])
+                    prob_winning_tie = num_same_bid / self.num_bidders
+                    win_count[num_won][j][a_idx] += prob_winning_tie
+                    exp_payment[num_won][j][a_idx] -= largest_bid_amongst_n_minus_1 * prob_winning_tie
+                    won_this_round = bernoulli.rvs(prob_winning_tie)
+                    sas_counter[num_won][j][a_idx][num_won + won_this_round][j + 1] += 1
+                    num_won += won_this_round
+                else:
+                    sas_counter[num_won][j][a_idx][num_won][j + 1] += 1
 
         # Calculate expected payment
         for X in range(self.num_rounds):

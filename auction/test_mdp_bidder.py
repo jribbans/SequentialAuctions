@@ -24,7 +24,7 @@ if type_dist_disc:
 else:
     type_dist = [1.0] * len(possible_types)
 
-num_mc = 100
+num_mc = 50000
 
 bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
            for i in range(num_bidders)]
@@ -48,18 +48,6 @@ for r in range(num_rounds):
         print(p, learner.price_pdf[r][p_idx], learner.price_cdf[r][p_idx])
 """
 
-"""
-plt.figure()
-for r in range(num_rounds):
-    plt.plot(learner.action_space, learner.prob_winning[r], label='Prob Winning r = ' + str(r))
-    # plt.plot(learner.price_prediction[r], learner.price_pdf[r], label='Price PDF r =' + str(r))
-    plt.plot(learner.price_prediction[r], learner.price_cdf[r], label='Price CDF r = ' + str(r))
-plt.xlabel('Bid')
-plt.ylabel('Probability/Density')
-plt.legend()
-plt.show()
-"""
-
 bidders[0].reset()
 b0 = [0] * len(bidders[0].possible_types)
 lb0 = [0] * len(learner.possible_types)
@@ -79,7 +67,6 @@ for t_idx, t in enumerate(learner.possible_types):
     b0[t_idx] = bidders[0].place_bid(1)
     lb0[t_idx] = learner.place_bid(1)
 
-"""
 plt.figure()
 plt.plot(possible_types, b0, label='Katzman')
 plt.plot(possible_types, lb0, label='MDP')
@@ -87,4 +74,3 @@ plt.xlabel('Valuation')
 plt.ylabel('Bid')
 plt.legend()
 plt.show()
-"""
