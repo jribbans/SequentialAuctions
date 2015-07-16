@@ -76,8 +76,8 @@ class MDPBidder(SimpleBidder):
         V(s) = max_a Q(s,a)
         \pi(s) = argmax_a Q(s,a)
         """
-        self.V, self.Q = self.value_iteration()
-        # self.V, self.Q = self.value_iteration_backwards_induction()
+        # self.V, self.Q = self.value_iteration()
+        self.V, self.Q = self.value_iteration_backwards_induction()
         """
         # Compare value iteration and the backwards induction method.
         V1, Q1 = self.value_iteration()
@@ -159,12 +159,16 @@ class MDPBidder(SimpleBidder):
             V[X][self.num_rounds] = self.R[X][self.num_rounds][0]
 
         # Solve
-        for X in reversed(range(self.num_rounds)):
-            for j in reversed(range(self.num_rounds)):
+        # State
+        for X in reversed(range(self.num_rounds + 1)):
+            for j in reversed(range(self.num_rounds + 1)):
+                # Action
                 for b_idx, b in enumerate(self.action_space):
-                    Q_win = self.price_cdf_at_bid[j][b_idx] * V[X + 1][j + 1]
-                    Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * V[X][j + 1]
-                    Q[X][j][b_idx] = self.R[X][j][b_idx] + Q_win + Q_lose
+                    Q[X][j][b_idx] = self.R[X][j][b_idx]
+                    # Next state
+                    for X2 in reversed(range(self.num_rounds + 1)):
+                        for j2 in reversed(range(self.num_rounds + 1)):
+                            Q[X][j][b_idx] += self.T[X][j][b_idx][X2][j2] * V[X2][j2]
                 V[X][j] = max(Q[X][j])
 
         return V, Q

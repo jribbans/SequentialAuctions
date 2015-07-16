@@ -67,6 +67,19 @@ def plot_prob_winning_and_transition(mdp_bidder):
     plt.show()
 
 
+def plot_Q_values(mdp_bidder):
+    plt.figure()
+    for X in range(mdp_bidder.num_rounds + 1):
+        for j in range(mdp_bidder.num_rounds + 1):
+            if X <= j:
+                ls = 'X=' + str(X) + ' j=' + str(j)
+                plt.plot(mdp_bidder.action_space, mdp_bidder.Q[X][j], label=ls)
+    plt.xlabel('Bid')
+    plt.ylabel('Q-Value')
+    plt.legend()
+    plt.show()
+
+
 # Initialize random number seeds for repeatability
 random.seed(0)
 numpy.random.seed(0)
@@ -103,6 +116,9 @@ learner.solve_mdp()
 plot_exp_payments(learner)
 plot_transition(learner)
 plot_prob_winning_and_transition(learner)
+plot_Q_values(learner)
+print(learner.place_bid(1))
+print(learner.place_bid(2))
 
 # Compare learner to other agents
 bidders[0].reset()
