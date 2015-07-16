@@ -20,22 +20,38 @@ class MDPBidder(SimpleBidder):
         """
         SimpleBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
         self.action_space = possible_types
-        self.prob_winning = [[0.0] * len(self.action_space) for i in range(num_rounds)]
+        self.prob_winning = [[[0.0] * len(self.action_space)
+                              for j in range(num_rounds)]
+                             for X in range(num_rounds)]
         self.num_price_samples = 101
-        self.price_pdf = [[0] * self.num_price_samples for r in range(self.num_rounds)]
-        self.price_cdf = [[0] * self.num_price_samples for r in range(self.num_rounds)]
-        self.price_prediction = [[0] * self.num_price_samples for r in range(self.num_rounds)]
-        self.price_cdf_at_bid = [[0] * self.num_price_samples for r in range(self.num_rounds)]
+        self.price_prediction = [[[0] * self.num_price_samples
+                                  for j in range(self.num_rounds)]
+                                 for X in range(self.num_rounds)]
+        self.price_pdf = [[[0] * self.num_price_samples
+                           for j in range(self.num_rounds)]
+                          for X in range(self.num_rounds)]
+        self.price_cdf = [[[0] * self.num_price_samples
+                           for j in range(self.num_rounds)]
+                          for X in range(self.num_rounds)]
         # Parameters for solving the Markov Decision Process
-        # States: (X, j).  X goods won at round j
+        # States: (X, j).  X goods won at round j.
         # Actions: b.  Bid b from the action space.
+        # Rewards, R(s, a)
         self.R = [[[0 for b in range(len(self.action_space))]
                    for j in range(self.num_rounds + 1)]
                   for X in range(self.num_rounds + 1)]
+        # Q values, Q(s, a)
         self.Q = [[[0 for b in range(len(self.action_space))]
                    for j in range(self.num_rounds + 1)]
                   for X in range(self.num_rounds + 1)]
+        # Values, V(s) = max_a Q(s, a)
         self.V = [[0 for j in range(self.num_rounds + 1)]
+                  for X in range(self.num_rounds + 1)]
+        # Transition function, T(s, a, s')
+        self.T = [[[[[0 for j2 in range(self.num_rounds + 1)]
+                     for X2 in range(self.num_rounds + 1)]
+                    for b in range(len(self.action_space))]
+                   for j in range(self.num_rounds + 1)]
                   for X in range(self.num_rounds + 1)]
 
     def learn_auction_parameters(self, bidders):
@@ -99,12 +115,21 @@ class MDPBidder(SimpleBidder):
         while largest_diff_V > convergence_threshold:
             num_iter += 1
             # Update Q
-            for X in range(self.num_rounds):
-                for j in range(self.num_rounds):
+            # State
+            for X in range(self.num_rounds + 1):
+                for j in range(self.num_rounds + 1):
+                    # Action
                     for b_idx, b in enumerate(self.action_space):
+                        Q[X][j][b_idx] = self.R[X][j][b_idx]
+                        # Next state
+                        for X2 in range(self.num_rounds + 1):
+                            for j2 in range(self.num_rounds + 1):
+                                Q[X][j][b_idx] += self.T[X][j][b_idx][X2][j2] * V[X2][j2]
+                        """
                         Q_win = self.price_cdf_at_bid[j][b_idx] * V[X + 1][j + 1]
                         Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * V[X][j + 1]
                         Q[X][j][b_idx] = self.R[X][j][b_idx] + Q_win + Q_lose
+                        """
 
             # Update V
             largest_diff_V = -float('inf')

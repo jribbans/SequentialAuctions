@@ -24,7 +24,7 @@ if type_dist_disc:
 else:
     type_dist = [1.0] * len(possible_types)
 
-num_trials_per_action = 100
+num_mc = 100
 
 bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
            for i in range(num_bidders)]
@@ -35,7 +35,7 @@ bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, 
 # bidders = [WeberBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 #           for i in range(num_bidders)]
 learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-learner.learn_auction_parameters(bidders, num_trials_per_action)
+learner.learn_auction_parameters(bidders, num_mc)
 
 """
 for r in range(num_rounds):
@@ -79,6 +79,7 @@ for t_idx, t in enumerate(learner.possible_types):
     b0[t_idx] = bidders[0].place_bid(1)
     lb0[t_idx] = learner.place_bid(1)
 
+"""
 plt.figure()
 plt.plot(possible_types, b0, label='Katzman')
 plt.plot(possible_types, lb0, label='MDP')
@@ -86,3 +87,4 @@ plt.xlabel('Valuation')
 plt.ylabel('Bid')
 plt.legend()
 plt.show()
+"""
