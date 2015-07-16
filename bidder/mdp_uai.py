@@ -37,23 +37,23 @@ class MDPBidderUAI(MDPBidder):
         :param bidders: List.  Bidders to learn from.
         :param num_mc: Integer.  Number of times to test an action.
         """
-        sa_counter = [[[0 for b in range(len(self.action_space))]
+        sa_counter = [[[0.0 for b in range(len(self.action_space))]
                        for j in range(self.num_rounds + 1)]
                       for X in range(self.num_rounds + 1)]
-        sas_counter = [[[[[0 for j2 in range(self.num_rounds + 1)]
+        sas_counter = [[[[[0.0 for j2 in range(self.num_rounds + 1)]
                           for X2 in range(self.num_rounds + 1)]
                          for b in range(len(self.action_space))]
                         for j in range(self.num_rounds + 1)]
                        for X in range(self.num_rounds + 1)]
-        exp_T = [[[[[0 for j2 in range(self.num_rounds + 1)]
+        exp_T = [[[[[0.0 for j2 in range(self.num_rounds + 1)]
                     for X2 in range(self.num_rounds + 1)]
                    for b in range(len(self.action_space))]
                   for j in range(self.num_rounds + 1)]
                  for X in range(self.num_rounds + 1)]
-        exp_payment = [[[0 for b in range(len(self.action_space))]
+        exp_payment = [[[0.0 for b in range(len(self.action_space))]
                         for j in range(self.num_rounds + 1)]
                        for X in range(self.num_rounds + 1)]
-        win_count = [[[0] * len(self.action_space)
+        win_count = [[[0.0] * len(self.action_space)
                       for j in range(self.num_rounds)]
                      for X in range(self.num_rounds)]
         highest_other_bid = [[[] for j in range(self.num_rounds)]
@@ -166,8 +166,8 @@ class MDPBidderUAI(MDPBidder):
                     if math.isnan(p[0]):
                         dy = cdf[i] - cdf[i - 1]
                         dx = mean_binned_val[i] - mean_binned_val[i - 1]
-                        if (dx <= 1e-5):
-                            pdf[i] = 0
+                        if dx <= 1e-5:
+                            pdf[i] = 0.0
                         else:
                             pdf[i] = dy / dx
                     else:
@@ -184,7 +184,7 @@ class MDPBidderUAI(MDPBidder):
                 Fb = [0] * len(self.action_space)
                 for b_idx, b in enumerate(self.action_space):
                     if b < sampled_prices[0]:
-                        Fb[b_idx] = 0
+                        Fb[b_idx] = 0.0
                     elif b > sampled_prices[-1]:
                         Fb[b_idx] = 1.0
                     else:
