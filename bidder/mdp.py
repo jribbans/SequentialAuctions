@@ -76,8 +76,8 @@ class MDPBidder(SimpleBidder):
         V(s) = max_a Q(s,a)
         \pi(s) = argmax_a Q(s,a)
         """
-        # self.V, self.Q = self.value_iteration()
-        self.V, self.Q = self.value_iteration_backwards_induction()
+        self.V, self.Q = self.value_iteration()
+        # self.V, self.Q = self.value_iteration_backwards_induction()
         """
         # Compare value iteration and the backwards induction method.
         V1, Q1 = self.value_iteration()
@@ -125,11 +125,6 @@ class MDPBidder(SimpleBidder):
                         for X2 in range(self.num_rounds + 1):
                             for j2 in range(self.num_rounds + 1):
                                 Q[X][j][b_idx] += self.T[X][j][b_idx][X2][j2] * V[X2][j2]
-                        """
-                        Q_win = self.price_cdf_at_bid[j][b_idx] * V[X + 1][j + 1]
-                        Q_lose = (1.0 - self.price_cdf_at_bid[j][b_idx]) * V[X][j + 1]
-                        Q[X][j][b_idx] = self.R[X][j][b_idx] + Q_win + Q_lose
-                        """
 
             # Update V
             largest_diff_V = -float('inf')
