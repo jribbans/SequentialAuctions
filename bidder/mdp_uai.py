@@ -117,13 +117,6 @@ class MDPBidderUAI(MDPBidder):
                     for X in range(self.num_rounds)]
         self.prob_winning = prob_win
 
-        """
-        for X in range(self.num_rounds):
-            for j in range(self.num_rounds):
-                for a in range(len(self.action_space)):
-                    print(X, j, a, sa_counter[X][j][a], prob_win[X][j][a], exp_T[X][j][a][X+1][j+1])
-        """
-
         # Calculate transition probabilities and predicted prices
         for X in range(self.num_rounds):
             for j in range(self.num_rounds):

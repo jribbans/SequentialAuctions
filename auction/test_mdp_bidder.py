@@ -8,6 +8,65 @@ import random
 import numpy
 import matplotlib.pyplot as plt
 
+
+def plot_exp_payments(mdp_bidder):
+    plt.figure()
+    for X in range(mdp_bidder.num_rounds):
+        for j in range(mdp_bidder.num_rounds):
+            if X <= j:
+                ls = 'R: X=' + str(X) + ' j=' + str(j)
+                plt.plot(mdp_bidder.action_space, mdp_bidder.R[X][j], label=ls)
+                ls = 'EP: X=' + str(X) + ' j=' + str(j)
+                plt.plot(mdp_bidder.action_space, mdp_bidder.exp_payment[X][j], label=ls)
+    plt.xlabel('Bid')
+    plt.ylabel('Expected Payment')
+    plt.title('Calculated and Empirical Expected Payment')
+    plt.legend()
+    plt.show()
+
+
+def plot_transition(mdp_bidder):
+    plt.figure()
+    for X in range(mdp_bidder.num_rounds + 1):
+        for j in range(mdp_bidder.num_rounds + 1):
+            for X2 in range(mdp_bidder.num_rounds + 1):
+                for j2 in range(mdp_bidder.num_rounds + 1):
+                    T = [0] * len(mdp_bidder.action_space)
+                    for a in range(len(mdp_bidder.action_space)):
+                        T[a] = mdp_bidder.T[X][j][a][X2][j2]
+                    if any(T[a] > 0 for a in range(len(mdp_bidder.action_space))):
+                        ls = 'T: X=' + str(X) + ' j=' + str(j) + ' X2=' + str(X2) + ' j2=' + str(j2)
+                        plt.plot(mdp_bidder.action_space, T, label=ls)
+    plt.xlabel('Bid')
+    plt.ylabel('Probability')
+    plt.title('Probability of Transitioning to Next State')
+    plt.legend()
+    plt.show()
+
+
+def plot_prob_winning_and_transition(mdp_bidder):
+    plt.figure()
+    for X in range(mdp_bidder.num_rounds + 1):
+        for j in range(mdp_bidder.num_rounds + 1):
+            for X2 in range(mdp_bidder.num_rounds + 1):
+                for j2 in range(mdp_bidder.num_rounds + 1):
+                    T = [0] * len(mdp_bidder.action_space)
+                    for a in range(len(mdp_bidder.action_space)):
+                        T[a] = mdp_bidder.T[X][j][a][X2][j2]
+                    if X2 <= X:
+                        continue
+                    if any(T[a] > 0 for a in range(len(mdp_bidder.action_space))):
+                        ls = 'T: X=' + str(X) + ' j=' + str(j) + ' X2=' + str(X2) + ' j2=' + str(j2)
+                        plt.plot(mdp_bidder.action_space, T, label=ls)
+                        ls = 'PW: X=' + str(X) + ' j=' + str(j)
+                        plt.plot(mdp_bidder.action_space, mdp_bidder.prob_winning[X][j], label=ls, ls=':')
+    plt.xlabel('Bid')
+    plt.ylabel('Probability')
+    plt.title('Probability of Winning and Transitions')
+    plt.legend()
+    plt.show()
+
+
 # Initialize random number seeds for repeatability
 random.seed(0)
 numpy.random.seed(0)
@@ -37,17 +96,15 @@ bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, 
 learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 learner.learn_auction_parameters(bidders, num_mc)
 
-"""
-for r in range(num_rounds):
-    print("Round", r)
-    print("prob winning")
-    for a_idx, a in enumerate(learner.action_space):
-        print(a, learner.prob_winning[r][a_idx])
-    print("price dist")
-    for p_idx, p in enumerate(learner.price_prediction[r]):
-        print(p, learner.price_pdf[r][p_idx], learner.price_cdf[r][p_idx])
-"""
+# Plot what the bidder has learned
+learner.valuations = [.2, .1]
+learner.calc_expected_rewards()
+learner.solve_mdp()
+plot_exp_payments(learner)
+plot_transition(learner)
+plot_prob_winning_and_transition(learner)
 
+# Compare learner to other agents
 bidders[0].reset()
 b0 = [0] * len(bidders[0].possible_types)
 lb0 = [0] * len(learner.possible_types)
