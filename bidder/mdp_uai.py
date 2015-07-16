@@ -30,7 +30,7 @@ class MDPBidderUAI(MDPBidder):
         """
         MDPBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 
-    def learn_auction_parameters(self, bidders, num_mc=100):
+    def learn_auction_parameters(self, bidders, num_mc=50000):
         """
         Learn the highest bid of n - 1 bidders and the probability of winning.
 
