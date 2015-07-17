@@ -40,6 +40,7 @@ class SimpleBidder:
         self.win = [False] * num_rounds
         self.payment = [0] * num_rounds
         self.utility = [0] * num_rounds
+        self.anounced_price = [0] * num_rounds
 
     def reset(self):
         """
@@ -50,6 +51,7 @@ class SimpleBidder:
         self.win = [False] * self.num_rounds
         self.payment = [0] * self.num_rounds
         self.utility = [0] * self.num_rounds
+        self.anounced_price = [0] * self.num_rounds
 
     def calc_type_dist_cdf(self):
         """
@@ -98,7 +100,7 @@ class SimpleBidder:
         self.bid[r] = self.valuations[self.num_goods_won]
         return self.bid[r]
 
-    def set_round_result(self, current_round, is_winner, payment):
+    def set_round_result(self, current_round, is_winner, payment, price=0):
         """
         Notifies the bidder of the results of the current auction round.
 
@@ -108,16 +110,15 @@ class SimpleBidder:
         """
         r = current_round - 1
         x = 1 if is_winner else 0
+        self.payment[r] = payment
+        self.utility[r] = self.valuations[self.num_goods_won] * x - payment
+        self.anounced_price[r] = price
         if is_winner:
             self.win[r] = True
-            self.payment[r] = payment
-            self.utility[r] = self.valuations[self.num_goods_won] * x - payment
             # Do this last, since it's the current valuation we need to compute utility.
             self.num_goods_won += 1
         else:
             self.win[r] = False
-            self.payment[r] = payment
-            self.utility[r] = self.valuations[self.num_goods_won] * x - payment
 
     def get_types_le_val(self, val):
         """

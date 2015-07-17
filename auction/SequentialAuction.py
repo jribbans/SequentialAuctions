@@ -38,9 +38,9 @@ class SequentialAuction:
             # Notify winning bidder
             for i, b in enumerate(self.bidders):
                 if i == self.winners[r]:
-                    self.bidders[i].set_round_result(round_number, True, self.payments[r])
+                    self.bidders[i].set_round_result(round_number, True, self.payments[r], self.payments[r])
                 else:
-                    self.bidders[i].set_round_result(round_number, False, 0.0)
+                    self.bidders[i].set_round_result(round_number, False, 0.0, self.payments[r])
 
     def print_bidder_results(self):
         """
