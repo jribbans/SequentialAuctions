@@ -80,30 +80,43 @@ def plot_Q_values(mdp_bidder):
     plt.show()
 
 
+def plot_price_pdf(mdp_bidder):
+    plt.figure()
+    for X in range(mdp_bidder.num_rounds):
+        for j in range(mdp_bidder.num_rounds):
+            if X <= j:
+                ls = 'X=' + str(X) + ' j=' + str(j)
+                plt.plot(mdp_bidder.price_prediction[X][j], mdp_bidder.price_pdf[X][j], label=ls)
+    plt.xlabel('Price Prediction')
+    plt.ylabel('PDF')
+    plt.legend()
+    plt.show()
+
+
 # Initialize random number seeds for repeatability
 random.seed(0)
 numpy.random.seed(0)
 
 # Auction parameters
-num_rounds = 1
+num_rounds = 2
 num_bidders = 2
 
 # Values in possible_types must be increasing.
-possible_types = [i / 100.0 for i in range(101)]
+possible_types = [i / 200.0 for i in range(201)]
 type_dist_disc = False
 if type_dist_disc:
     type_dist = [1.0 / len(possible_types)] * len(possible_types)
 else:
     type_dist = [1.0] * len(possible_types)
 
-num_mc = 50000
+num_mc = 100000
 
-# bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-#            for i in range(num_bidders)]
+bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+           for i in range(num_bidders)]
 # bidders = [MenezesMonteiroBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 #           for i in range(num_bidders)]
-bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-           for i in range(num_bidders)]
+# bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+#           for i in range(num_bidders)]
 # bidders = [WeberBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 #           for i in range(num_bidders)]
 learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
@@ -117,8 +130,9 @@ plot_exp_payments(learner)
 plot_transition(learner)
 plot_prob_winning_and_transition(learner)
 plot_Q_values(learner)
+plot_price_pdf(learner)
 print(learner.place_bid(1))
-#print(learner.place_bid(2))
+# print(learner.place_bid(2))
 
 # Compare learner to other agents
 bidders[0].reset()
@@ -132,16 +146,16 @@ for t_idx, t in enumerate(learner.possible_types):
     else:
         learner.calc_end_state_rewards()
     learner.solve_mdp()
-    #b20 = learner.place_bid(2)
-    #learner.num_goods_won += 1
-    #b21 = learner.place_bid(2)
-    #learner.num_goods_won = 0
-    #print(t, learner.place_bid(1), b20, b21)
+    # b20 = learner.place_bid(2)
+    # learner.num_goods_won += 1
+    # b21 = learner.place_bid(2)
+    # learner.num_goods_won = 0
+    # print(t, learner.place_bid(1), b20, b21)
     b0[t_idx] = bidders[0].place_bid(1)
     lb0[t_idx] = learner.place_bid(1)
 
 plt.figure()
-plt.plot(possible_types, b0, label='Simple')
+plt.plot(possible_types, b0, label='Katzman')
 plt.plot(possible_types, lb0, label='MDP')
 plt.xlabel('Valuation')
 plt.ylabel('Bid')
