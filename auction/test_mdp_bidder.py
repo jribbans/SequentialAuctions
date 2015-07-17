@@ -11,13 +11,12 @@ import matplotlib.pyplot as plt
 
 def plot_exp_payments(mdp_bidder):
     plt.figure()
-    for X in range(mdp_bidder.num_rounds):
-        for j in range(mdp_bidder.num_rounds):
-            if X <= j:
-                ls = 'R: X=' + str(X) + ' j=' + str(j)
-                plt.plot(mdp_bidder.action_space, mdp_bidder.R[X][j], label=ls)
-                ls = 'EP: X=' + str(X) + ' j=' + str(j)
-                plt.plot(mdp_bidder.action_space, mdp_bidder.exp_payment[X][j], label=ls)
+    states = set([s[0] for s in mdp_bidder.R.keys()])
+    for s in states:
+        R = [mdp_bidder.R[(s, a)] for a in mdp_bidder.action_space]
+        exp_payment = [mdp_bidder.exp_payment[(s, a)] for a in mdp_bidder.action_space]
+        plt.plot(mdp_bidder.action_space, R, label='R' + str(s))
+        plt.plot(mdp_bidder.action_space, exp_payment, label='EP' + str(s))
     plt.xlabel('Bid')
     plt.ylabel('Expected Payment')
     plt.title('Calculated and Empirical Expected Payment')
@@ -27,16 +26,16 @@ def plot_exp_payments(mdp_bidder):
 
 def plot_transition(mdp_bidder):
     plt.figure()
-    for X in range(mdp_bidder.num_rounds + 1):
-        for j in range(mdp_bidder.num_rounds + 1):
-            for X2 in range(mdp_bidder.num_rounds + 1):
-                for j2 in range(mdp_bidder.num_rounds + 1):
-                    T = [0] * len(mdp_bidder.action_space)
-                    for a in range(len(mdp_bidder.action_space)):
-                        T[a] = mdp_bidder.T[X][j][a][X2][j2]
-                    if any(T[a] > 0 for a in range(len(mdp_bidder.action_space))):
-                        ls = 'T: X=' + str(X) + ' j=' + str(j) + ' X2=' + str(X2) + ' j2=' + str(j2)
-                        plt.plot(mdp_bidder.action_space, T, label=ls)
+    for s in mdp_bidder.state_space:
+        for s_ in mdp_bidder.state_space:
+            T = [0] * len(mdp_bidder.action_space)
+            for a_idx, a in enumerate(mdp_bidder.action_space):
+                if (s, a, s_) not in mdp_bidder.T:
+                    continue
+                T[a_idx] = mdp_bidder.T[(s, a, s_)]
+            if any(T[b] > 0 for b in range(len(mdp_bidder.action_space))):
+                plt.plot(mdp_bidder.action_space, T, label=str(s) + ', ' + str(s_))
+
     plt.xlabel('Bid')
     plt.ylabel('Probability')
     plt.title('Probability of Transitioning to Next State')
@@ -46,20 +45,25 @@ def plot_transition(mdp_bidder):
 
 def plot_prob_winning_and_transition(mdp_bidder):
     plt.figure()
-    for X in range(mdp_bidder.num_rounds + 1):
-        for j in range(mdp_bidder.num_rounds + 1):
-            for X2 in range(mdp_bidder.num_rounds + 1):
-                for j2 in range(mdp_bidder.num_rounds + 1):
-                    T = [0] * len(mdp_bidder.action_space)
-                    for a in range(len(mdp_bidder.action_space)):
-                        T[a] = mdp_bidder.T[X][j][a][X2][j2]
-                    if X2 <= X:
-                        continue
-                    if any(T[a] > 0 for a in range(len(mdp_bidder.action_space))):
-                        ls = 'T: X=' + str(X) + ' j=' + str(j) + ' X2=' + str(X2) + ' j2=' + str(j2)
-                        plt.plot(mdp_bidder.action_space, T, label=ls)
-                        ls = 'PW: X=' + str(X) + ' j=' + str(j)
-                        plt.plot(mdp_bidder.action_space, mdp_bidder.prob_winning[X][j], label=ls, ls=':')
+
+    for s in mdp_bidder.state_space:
+        prob_win = [0] * len(mdp_bidder.action_space)
+        for a_idx, a in enumerate(mdp_bidder.action_space):
+            prob_win[a_idx] = mdp_bidder.prob_win[(s, a)]
+        if any(prob_win[a_idx] > 0 for a_idx in range(len(mdp_bidder.action_space))):
+            plt.plot(mdp_bidder.action_space, prob_win, label='PW ' + str(s))
+
+    for s in mdp_bidder.state_space:
+        for s_ in mdp_bidder.state_space:
+            T = [0] * len(mdp_bidder.action_space)
+            for a_idx, a in enumerate(mdp_bidder.action_space):
+                if s_[0] < s[0]:
+                    continue
+                if (s, a, s_) in mdp_bidder.T.keys():
+                    T[a_idx] = mdp_bidder.T[(s, a, s_)]
+            if any(T[a_idx] > 0 for a_idx in range(len(mdp_bidder.action_space))):
+                plt.plot(mdp_bidder.action_space, T, label='T ' + str(s) + ' ' + str(s_))
+
     plt.xlabel('Bid')
     plt.ylabel('Probability')
     plt.title('Probability of Winning and Transitions')
@@ -69,11 +73,10 @@ def plot_prob_winning_and_transition(mdp_bidder):
 
 def plot_Q_values(mdp_bidder):
     plt.figure()
-    for X in range(mdp_bidder.num_rounds + 1):
-        for j in range(mdp_bidder.num_rounds + 1):
-            if X <= j:
-                ls = 'X=' + str(X) + ' j=' + str(j)
-                plt.plot(mdp_bidder.action_space, mdp_bidder.Q[X][j], label=ls)
+    for s in mdp_bidder.state_space:
+        if s[0] <= s[1]:
+            Q = [mdp_bidder.Q[(s, a)] for a in mdp_bidder.action_space]
+            plt.plot(mdp_bidder.action_space, Q, label=str(s))
     plt.xlabel('Bid')
     plt.ylabel('Q-Value')
     plt.legend()
@@ -82,11 +85,9 @@ def plot_Q_values(mdp_bidder):
 
 def plot_price_pdf(mdp_bidder):
     plt.figure()
-    for X in range(mdp_bidder.num_rounds):
-        for j in range(mdp_bidder.num_rounds):
-            if X <= j:
-                ls = 'X=' + str(X) + ' j=' + str(j)
-                plt.plot(mdp_bidder.price_prediction[X][j], mdp_bidder.price_pdf[X][j], label=ls)
+    for s in mdp_bidder.state_space:
+        if (s[0] <= s[1]) and s in mdp_bidder.price_prediction.keys():
+            plt.plot(mdp_bidder.price_prediction[s], mdp_bidder.price_pdf[s], label=str(s))
     plt.xlabel('Price Prediction')
     plt.ylabel('PDF')
     plt.legend()
@@ -109,7 +110,7 @@ if type_dist_disc:
 else:
     type_dist = [1.0] * len(possible_types)
 
-num_mc = 100000
+num_mc = 50000
 
 bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
            for i in range(num_bidders)]
@@ -144,7 +145,7 @@ for t_idx, t in enumerate(learner.possible_types):
     if t_idx == 0:
         learner.calc_expected_rewards()
     else:
-        learner.calc_end_state_rewards()
+        learner.calc_terminal_state_rewards()
     learner.solve_mdp()
     # b20 = learner.place_bid(2)
     # learner.num_goods_won += 1
