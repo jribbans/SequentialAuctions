@@ -105,9 +105,6 @@ class MDPBidderUAIAugS(MDPBidderUAI):
                     win_count[(s, a)] += 1
                     exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1
                     num_won += 1
-                    last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - sa.payments[j]))
-                    s_ = self.get_next_state(j + 1, num_won, last_price_seen)
-                    sas_counter[(s, a, s_)] += 1
                 elif largest_bid_amongst_n_minus_1 == a:
                     num_same_bid = sum(b == a for b in sa.bids[j][:-1])
                     prob_winning_tie = num_same_bid / self.num_bidders
@@ -115,13 +112,9 @@ class MDPBidderUAIAugS(MDPBidderUAI):
                     exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1 * prob_winning_tie
                     won_this_round = bernoulli.rvs(prob_winning_tie)
                     num_won += won_this_round
-                    last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - sa.payments[j]))
-                    s_ = self.get_next_state(j + 1, num_won, last_price_seen)
-                    sas_counter[(s, a, s_)] += 1
-                else:
-                    last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - sa.payments[j]))
-                    s_ = self.get_next_state(j + 1, num_won, last_price_seen)
-                    sas_counter[(s, a, s_)] += 1
+                last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - sa.payments[j]))
+                s_ = self.get_next_state(j + 1, num_won, last_price_seen)
+                sas_counter[(s, a, s_)] += 1
 
         for s in self.state_space:
             for a_idx, a in enumerate(self.action_space):
