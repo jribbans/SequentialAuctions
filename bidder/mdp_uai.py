@@ -58,6 +58,9 @@ class MDPBidderUAI(MDPBidder):
                      for X in range(self.num_rounds)]
         highest_other_bid = [[[] for j in range(self.num_rounds)]
                              for X in range(self.num_rounds)]
+        prob_win = [[[0.0 for b in range(len(self.action_space))]
+                     for j in range(self.num_rounds + 1)]
+                    for X in range(self.num_rounds + 1)]
 
         # Have the agent play against N - 1 bidders
         sa = SequentialAuction(bidders, self.num_rounds)
@@ -96,9 +99,11 @@ class MDPBidderUAI(MDPBidder):
         # Calculate expected payment
         for X in range(self.num_rounds):
             for j in range(self.num_rounds):
-                for a in range(len(self.action_space)):
-                    if sa_counter[X][j][a] > 0:
-                        exp_payment[X][j][a] /= sa_counter[X][j][a]
+                for a_idx, a in enumerate(self.action_space):
+                    if sa_counter[X][j][a_idx] > 0:
+                        exp_payment[X][j][a_idx] /= sa_counter[X][j][a_idx]
+                    elif a_idx > 0:
+                        exp_payment[X][j][a_idx] = exp_payment[X][j][a_idx - 1]
         self.exp_payment = exp_payment
 
         # Calculate expected transition probabilities
@@ -113,10 +118,13 @@ class MDPBidderUAI(MDPBidder):
                                                          / sa_counter[X][j][b_idx]
 
         # Calculate the probability of winning
-        prob_win = [[[win_count[X][j][a] / sa_counter[X][j][a] if sa_counter[X][j][a] != 0 else 0.0
-                      for a in range(len(self.action_space))]
-                     for j in range(self.num_rounds)]
-                    for X in range(self.num_rounds)]
+        for X in range(self.num_rounds):
+            for j in range(self.num_rounds):
+                for a_idx, a in enumerate(self.action_space):
+                    if sa_counter[X][j][a_idx] > 0:
+                        prob_win[X][j][a_idx] = win_count[X][j][a_idx] / sa_counter[X][j][a_idx]
+                    elif a_idx > 0:
+                        prob_win[X][j][a_idx] = prob_win[X][j][a_idx - 1]
         self.prob_winning = prob_win
 
         # Calculate transition probabilities and predicted prices
