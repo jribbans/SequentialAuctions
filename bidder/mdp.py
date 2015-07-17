@@ -23,7 +23,7 @@ class MDPBidder(SimpleBidder):
         self.prob_winning = [[[0.0] * len(self.action_space)
                               for j in range(num_rounds)]
                              for X in range(num_rounds)]
-        self.num_price_samples = 1001
+        self.num_price_samples = len(self.action_space)
         self.price_prediction = [[[0] * self.num_price_samples
                                   for j in range(self.num_rounds)]
                                  for X in range(self.num_rounds)]
