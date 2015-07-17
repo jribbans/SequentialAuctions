@@ -124,68 +124,23 @@ class MDPBidderUAI(MDPBidder):
                 if not highest_other_bid[X][j]:
                     continue
                 highest_other_bid[X][j].sort()
-                # Build a histogram of highest other bids
-                # Make bin edges
-                if self.type_dist_disc:
-                    # In the discrete case, bin edges will be the bids we have seen
-                    unique_bids = list(set(highest_other_bid[X][j]))
-                    unique_bids.sort()
-                    bin_edges = unique_bids
-                else:
-                    # In the continous case, bins are made by dividing the entire range of bids seen
-                    bid_range = highest_other_bid[X][j][-1] - highest_other_bid[X][j][0]
-                    bin_width = bid_range / (self.num_price_samples + 2)
-                    bin_edges = [bin_width * i for i in range(1, self.num_price_samples + 3)]
-                    # Avoid numerical issues.  The last bin edge should be exactly the largest bid observed.
-                    bin_edges[-1] = highest_other_bid[X][j][-1]
-                # Bin bids
-                hist = {e: [] for e in bin_edges}
-                idx = 0
-                for b in highest_other_bid[X][j]:
-                    if bin_edges[idx] >= b:
-                        hist[bin_edges[idx]].append(b)
-                    else:
-                        while bin_edges[idx] < b:
-                            idx += 1
-                        hist[bin_edges[idx]].append(b)
-                # Calculate the average bid in each bin and the CDF
-                mean_binned_val = [sum(hist[e]) / len(hist[e]) if len(hist[e]) > 0 else 0.0
-                                   for e in bin_edges]
-                # Calculate the empirical CDF at each bin
-                num_entries_per_bin = [len(hist[bin_edges[i]]) for i in range(len(bin_edges))]
-                cdf = [sum(num_entries_per_bin[:e_idx + 1])
-                       for e_idx in range(len(bin_edges))]
-                # Normalize
-                cdf = [cdf[e_idx] / cdf[-1]
-                       for e_idx in range(len(bin_edges))]
-                # Calculate the PDF of all points except for the first and last.
-                pdf = [0] * len(bin_edges)
-                for i in range(1, len(pdf) - 1):
-                    # Calculate the slope using points i - 1, i and i + 1
-                    p = numpy.polyfit(mean_binned_val[i - 1:i + 2], cdf[i - 1:i + 2], 1).tolist()
-                    if math.isnan(p[0]):
-                        dy = cdf[i] - cdf[i - 1]
-                        dx = mean_binned_val[i] - mean_binned_val[i - 1]
-                        if dx <= 1e-5:
-                            pdf[i] = 0.0
-                        else:
-                            pdf[i] = dy / dx
-                    else:
-                        pdf[i] = p[0]
-                # The sampled prices are what we will store as price predictions
-                sampled_prices = mean_binned_val[1:-1]
-                self.price_prediction[X][j] = sampled_prices
-                # Store distribution information about prices
-                self.price_pdf[X][j] = pdf[1:-1]
-                self.price_cdf[X][j] = cdf[1:-1]
-                # Calculate the probability of exceeding a predicted price for each action this bidder can perform.
-                interp_pdf = scipy.interpolate.interp1d(sampled_prices, pdf[1:-1])
-                interp_cdf = scipy.interpolate.interp1d(sampled_prices, cdf[1:-1])
+                # Generate a histogram and obtain probability density values
+                hist, bin_edges = numpy.histogram(highest_other_bid[X][j], self.num_price_samples, density=True)
+                self.price_prediction[X][j] = bin_edges[:-1].tolist()
+                # self.price_prediction[X][j] = [float(bin_edges[i] + bin_edges[i + 1]) * .5
+                #                               for i in range(len(bin_edges) - 1)]
+                self.price_pdf[X][j] = hist.tolist()
+                self.price_cdf[X][j] = numpy.cumsum(hist * numpy.diff(bin_edges)).tolist()
+                # Calculate distribution statistics for possible bids
+                interp_pdf = scipy.interpolate.interp1d(self.price_prediction[X][j], self.price_pdf[X][j],
+                                                        kind='slinear')
+                interp_cdf = scipy.interpolate.interp1d(self.price_prediction[X][j], self.price_cdf[X][j],
+                                                        kind='slinear')
                 Fb = [0] * len(self.action_space)
                 for b_idx, b in enumerate(self.action_space):
-                    if b < sampled_prices[0]:
+                    if b < self.price_prediction[X][j][0]:
                         Fb[b_idx] = 0.0
-                    elif b > sampled_prices[-1]:
+                    elif b > self.price_prediction[X][j][-1]:
                         Fb[b_idx] = 1.0
                     else:
                         Fb[b_idx] = float(interp_cdf(b))
