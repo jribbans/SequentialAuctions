@@ -86,9 +86,9 @@ class MDPBidder(SimpleBidder):
         Q_same = True
         for X in range(self.num_rounds):
             for j in range(self.num_rounds):
-                V_same = V_same & (abs(V1[X][j] - V2[X][j]) <= 0.001)
+                V_same = V_same and (abs(V1[X][j] - V2[X][j]) <= 0.001)
                 for b_idx, b in enumerate(self.action_space):
-                    Q_same = Q_same & (abs(Q1[X][j][b_idx] - Q2[X][j][b_idx]) <= 0.001)
+                    Q_same = Q_same and (abs(Q1[X][j][b_idx] - Q2[X][j][b_idx]) <= 0.001)
         print(V_same, Q_same)
         """
 

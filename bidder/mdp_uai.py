@@ -5,7 +5,6 @@ Implements a bidder that learns how to bid using a Markov Decision Process descr
 conference on Uncertainty in artificial intelligence. AUAI Press, 2004.
 """
 from bidder.mdp import MDPBidder
-from auction.SequentialAuction import SequentialAuction
 import numpy
 import scipy.integrate
 import scipy.interpolate
@@ -59,37 +58,54 @@ class MDPBidderUAI(MDPBidder):
         highest_other_bid = [[[] for j in range(self.num_rounds)]
                              for X in range(self.num_rounds)]
 
-        sa = SequentialAuction(bidders, self.num_rounds)
+        # Have the agent play against N - 1 bidders
         for t in range(num_mc):
-            # Refresh bidders
-            for bidder in bidders:
+            # Refresh bidders.  We will not use the last bidder.
+            for bidder in bidders[:-1]:
                 bidder.valuations = bidder.make_valuations()
                 bidder.reset()
-            # Run an auction and see how randomly sampled actions would perform against n - 1 bidders
-            sa.run()
             num_won = 0
             for j in range(self.num_rounds):
-                largest_bid_amongst_n_minus_1 = max(sa.bids[j][:-1])
+                bids = [bidder.place_bid(j + 1) for bidder in bidders[:-1]]
+                largest_bid_amongst_n_minus_1 = max(bids)
                 highest_other_bid[num_won][j].append(largest_bid_amongst_n_minus_1)
                 a_idx = random.randint(0, len(self.action_space) - 1)
                 a = self.action_space[a_idx]
+                bids.append(a)
                 sa_counter[num_won][j][a_idx] += 1
                 if largest_bid_amongst_n_minus_1 < a:
                     win_count[num_won][j][a_idx] += 1
                     exp_payment[num_won][j][a_idx] -= largest_bid_amongst_n_minus_1
                     sas_counter[num_won][j][a_idx][num_won + 1][j + 1] += 1
                     num_won += 1
+                    for bidder in bidders[:-1]:
+                        bidder.set_round_result(j + 1, False, 0.0)
                 elif largest_bid_amongst_n_minus_1 == a:
                     # Increment based on how many bidders bid the same bid
-                    num_same_bid = sum(b == a for b in sa.bids[j][:-1])
+                    num_same_bid = sum(b == a for b in bids[:-1])
                     prob_winning_tie = num_same_bid / self.num_bidders
                     win_count[num_won][j][a_idx] += prob_winning_tie
                     exp_payment[num_won][j][a_idx] -= largest_bid_amongst_n_minus_1 * prob_winning_tie
                     won_this_round = bernoulli.rvs(prob_winning_tie)
                     sas_counter[num_won][j][a_idx][num_won + won_this_round][j + 1] += 1
                     num_won += won_this_round
+                    if won_this_round:
+                        for bidder in bidders[:-1]:
+                            bidder.set_round_result(j + 1, False, 0.0)
+                    else:
+                        gave_object_away = False
+                        for bidder in bidders[:-1]:
+                            if (bidder.bid[j] == largest_bid_amongst_n_minus_1) and not gave_object_away:
+                                bidder.set_round_result(j + 1, True, a)
+                            else:
+                                bidder.set_round_result(j + 1, False, a)
                 else:
                     sas_counter[num_won][j][a_idx][num_won][j + 1] += 1
+                    for bidder in bidders[:-1]:
+                        if bidder.bid[j] == largest_bid_amongst_n_minus_1:
+                            bidder.set_round_result(j + 1, True, sorted(bids)[-2])
+                        else:
+                            bidder.set_round_result(j + 1, False, 0)
 
         # Calculate expected payment
         for X in range(self.num_rounds):
