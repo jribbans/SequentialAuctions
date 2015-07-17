@@ -141,11 +141,22 @@ class MDPBidderUAI(AbstractMDPBidder):
             if not highest_other_bid[s]:
                 continue
             highest_other_bid[s].sort()
-            # Generate a histogram and obtain probability density values
-            hist, bin_edges = numpy.histogram(highest_other_bid[s], self.num_price_samples, density=True)
-            self.price_prediction[s] = bin_edges[:-1].tolist()
-            self.price_pdf[s] = hist.tolist()
-            self.price_cdf[s] = numpy.cumsum(hist * numpy.diff(bin_edges)).tolist()
+            if self.type_dist_disc:
+                # Generate a histogram and obtain probability mass values
+                hist, bin_edges = numpy.histogram(highest_other_bid[s], self.num_price_samples, density=False)
+                self.price_prediction[s] = bin_edges[:-1].tolist()
+                hist = hist.tolist()
+                total = float(sum(hist))
+                hist = [h / total for h in hist]
+                assert abs(sum(hist) - 1.0) < .00001, "Probability mass values are not correct"
+                self.price_pdf[s] = hist
+                self.price_cdf[s] = numpy.cumsum(hist).tolist()
+            else:
+                # Generate a histogram and obtain probability density values
+                hist, bin_edges = numpy.histogram(highest_other_bid[s], self.num_price_samples, density=True)
+                self.price_prediction[s] = bin_edges[:-1].tolist()
+                self.price_pdf[s] = hist.tolist()
+                self.price_cdf[s] = numpy.cumsum(hist * numpy.diff(bin_edges)).tolist()
 
     def calc_transition_matrix(self):
         """
@@ -184,9 +195,15 @@ class MDPBidderUAI(AbstractMDPBidder):
         for s in self.price_prediction.keys():
             for a_idx, a in enumerate(self.action_space):
                 r = [-p if p <= a else 0.0 for p in self.price_prediction[s]]
-                to_integrate = [r[p_idx] * self.price_pdf[s][p_idx]
-                                for p_idx, p in enumerate(self.price_prediction[s])]
-                self.R[(s, a)] = scipy.integrate.trapz(to_integrate, self.price_prediction[s])
+                if self.type_dist_disc:
+                    to_sum = [r[p_idx] * self.price_pdf[s][p_idx]
+                                    for p_idx, p in enumerate(self.price_prediction[s])]
+                    self.R[(s, a)] = sum(to_sum[i]
+                                         for i in range(len(to_sum)))
+                else:
+                    to_integrate = [r[p_idx] * self.price_pdf[s][p_idx]
+                                    for p_idx, p in enumerate(self.price_prediction[s])]
+                    self.R[(s, a)] = scipy.integrate.trapz(to_integrate, self.price_prediction[s])
 
         self.calc_terminal_state_rewards()
 
