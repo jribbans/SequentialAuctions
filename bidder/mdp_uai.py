@@ -129,6 +129,13 @@ class MDPBidderUAI(AbstractMDPBidder):
                     prob_win[(s, a)] = prob_win[(s, self.action_space[a_idx - 1])]
         self.prob_win = prob_win
 
+        self.perform_price_prediction(highest_other_bid)
+        self.calc_transition_matrix()
+
+    def perform_price_prediction(self, highest_other_bid):
+        """
+        From the bids seen, determine price statistics.
+        """
         for s in self.state_space:
             # Only proceed if there is something to do
             if not highest_other_bid[s]:
@@ -139,6 +146,15 @@ class MDPBidderUAI(AbstractMDPBidder):
             self.price_prediction[s] = bin_edges[:-1].tolist()
             self.price_pdf[s] = hist.tolist()
             self.price_cdf[s] = numpy.cumsum(hist * numpy.diff(bin_edges)).tolist()
+
+    def calc_transition_matrix(self):
+        """
+        Calculate the probability of transitioning from state s and action a to state s_ for all possible seen states
+        and actions.
+        """
+        for s in self.state_space:
+            if s not in self.price_prediction.keys():
+                continue
             # Calculate distribution statistics for possible bids
             interp_pdf = scipy.interpolate.interp1d(self.price_prediction[s], self.price_pdf[s],
                                                     kind='slinear')

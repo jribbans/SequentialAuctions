@@ -51,6 +51,18 @@ class AbstractMDPBidder(SimpleBidder):
         """
         pass
 
+    def perform_price_prediction(self):
+        """
+        Determine price statistics.
+        """
+        pass
+
+    def calc_transition_matrix(self):
+        """
+        Calculate the probability of transitioning from state s and action a to state s_.
+        """
+        pass
+
     def calc_expected_rewards(self):
         """
         Calculate expected rewards using learned prices.
