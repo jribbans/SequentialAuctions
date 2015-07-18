@@ -108,6 +108,8 @@ class AbstractMDPBidder(SimpleBidder):
                 for a in self.action_space:
                     if (s, a) not in self.R.keys():
                         continue
+                    if s in self.terminal_states:
+                        continue
                     Q[(s, a)] = self.R[(s, a)]
                     for s_ in self.state_space:
                         if (s, a, s_) not in self.T.keys():
@@ -117,6 +119,8 @@ class AbstractMDPBidder(SimpleBidder):
             # Update V
             largest_diff_V = -float('inf')
             for s in self.state_space:
+                if s in self.terminal_states:
+                    continue
                 old_V = V[s]
                 new_V = -float('inf')
                 for a in self.action_space:
