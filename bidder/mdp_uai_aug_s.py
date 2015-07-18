@@ -48,6 +48,7 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         """
         for X in range(self.num_rounds + 1):
             for j in range(self.num_rounds + 1):
+                # Number of goods won cannot exceed the round number
                 if X <= j:
                     for p in itertools.product(self.prices_in_state, repeat=j):
                         self.state_space.append((X, j, p))
@@ -99,17 +100,14 @@ class MDPBidderUAIAugS(MDPBidderUAI):
                 s_ = self.get_next_state(s, won_this_round, last_price_seen)
                 sas_counter[(s, a, s_)] += 1
 
-        for s, a in sa_counter.keys():
-            exp_payment[(s, a)] /= sa_counter[(s, a)]
-        self.exp_payment = exp_payment
+        self.exp_payment = {(s, a): exp_payment[(s, a)] / sa_counter[(s, a)]
+                            for (s, a) in sa_counter.keys()}
 
-        for s, a, s_ in sas_counter.keys():
-            exp_T[(s, a, s_)] = sas_counter[(s, a, s_)] / sa_counter[(s, a)]
-        self.T = exp_T
+        self.T = {(s, a, s_): sas_counter[(s, a, s_)] / sa_counter[(s, a)]
+                  for (s, a, s_) in sas_counter.keys()}
 
-        for s, a in sa_counter.keys():
-            prob_win[(s, a)] = win_count[(s, a)] / sa_counter[(s, a)]
-        self.prob_win = prob_win
+        self.prob_win = {(s, a): win_count[(s, a)] / sa_counter[(s, a)]
+                         for (s, a) in sa_counter.keys()}
 
         self.perform_price_prediction(highest_other_bid)
 
