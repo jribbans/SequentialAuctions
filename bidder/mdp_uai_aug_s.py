@@ -79,28 +79,20 @@ class MDPBidderUAIAugS(MDPBidderUAI):
             sa.run()
             num_won = 0
             last_price_seen = None
+            s = s_ = (0, 0, ())
             for j in range(self.num_rounds):
+                s = s_
                 largest_bid_amongst_n_minus_1 = max(sa.bids[j][:-1])
-                if j == 0:
-                    s = (0, 0, ())
-                else:
-                    s = s_
                 highest_other_bid[s].append(largest_bid_amongst_n_minus_1)
+                # The action closest to the Nth bidder
                 a = min(self.action_space, key=lambda x: abs(x - sa.bids[j][-1]))
                 sa_counter[(s, a)] += 1
-                won_this_round = False
-                if largest_bid_amongst_n_minus_1 < a:
+                won_this_round = bidders[-1].win[j]
+                # Outcome depends on the action we placed, which is hopefully close to what the Nth bidder used.
+                if won_this_round:
                     win_count[(s, a)] += 1
                     exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1
                     num_won += 1
-                    won_this_round = True
-                elif largest_bid_amongst_n_minus_1 == a:
-                    won_this_round = bidders[-1].win[j]
-                    if won_this_round:
-                        win_count[(s, a)] += 1
-                        exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1
-                        num_won += 1
-                if won_this_round:
                     last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - sa.payments[j]))
                 else:
                     last_price_seen = 0.0
