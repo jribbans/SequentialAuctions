@@ -13,6 +13,7 @@ import scipy.interpolate
 from auction.SequentialAuction import SequentialAuction
 from scipy.stats import bernoulli
 import itertools
+from collections import defaultdict
 
 
 class MDPBidderUAIAugS(MDPBidderUAI):
@@ -31,12 +32,12 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         """
         # Init will call make_state_space, but we need some more information before going through this process.
         MDPBidderUAI.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-        self.num_price_samples = len(self.action_space) # Not used
-        #self.num_prices_for_state = len(self.action_space) - 1
-        #state_price_delta = float(max(possible_types) - min(possible_types)) / self.num_prices_for_state
-        #self.prices_in_state = [i * state_price_delta for i in range(self.num_prices_for_state)]
-        self.num_prices_for_state = 2
-        self.prices_in_state = [0, 3, 10]
+        self.num_price_samples = len(self.action_space)  # Not used
+        self.num_prices_for_state = len(self.action_space) - 1
+        state_price_delta = float(max(possible_types) - min(possible_types)) / self.num_prices_for_state
+        self.prices_in_state = [i * state_price_delta for i in range(self.num_prices_for_state)]
+        # self.num_prices_for_state = 2
+        # self.prices_in_state = [0, 3, 10]
         self.make_state_space_after_init()
 
     def make_state_space(self):
@@ -60,23 +61,13 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         :param bidders: List.  Bidders to learn from.
         :param num_mc: Integer.  Number of times to test an action.
         """
-        exp_payment = {}
-        exp_T = {}
-        prob_win = {}
-        win_count = {}
-        sa_counter = {}
-        sas_counter = {}
-        highest_other_bid = {}
-        for s in self.state_space:
-            highest_other_bid[s] = []
-            for a in self.action_space:
-                exp_payment[(s, a)] = 0.0
-                prob_win[(s, a)] = 0.0
-                win_count[(s, a)] = 0.0
-                sa_counter[(s, a)] = 0.0
-                for s_ in self.state_space:
-                    sas_counter[(s, a, s_)] = 0.0
-                    exp_T[(s, a, s_)] = 0.0
+        exp_payment = defaultdict(float)
+        exp_T = defaultdict(float)
+        prob_win = defaultdict(float)
+        win_count = defaultdict(float)
+        sa_counter = defaultdict(float)
+        sas_counter = defaultdict(float)
+        highest_other_bid = defaultdict(list)
 
         sa = SequentialAuction(bidders, self.num_rounds)
         for t in range(num_mc):
@@ -116,38 +107,25 @@ class MDPBidderUAIAugS(MDPBidderUAI):
                 s_ = self.get_next_state(s, won_this_round, last_price_seen)
                 sas_counter[(s, a, s_)] += 1
 
-        for s in self.state_space:
-            for a_idx, a in enumerate(self.action_space):
-                if sa_counter[(s, a)] > 0:
-                    exp_payment[(s, a)] /= sa_counter[(s, a)]
-                elif a_idx > 0:
-                    exp_payment[(s, a)] = exp_payment[(s, self.action_space[a_idx - 1])]
+        for s, a in sa_counter.keys():
+            exp_payment[(s, a)] /= sa_counter[(s, a)]
         self.exp_payment = exp_payment
 
-        for s in self.state_space:
-            for a_idx, a in enumerate(self.action_space):
-                for s_ in self.state_space:
-                    if sa_counter[(s, a)] == 0:
-                        exp_T[(s, a, s_)] = 0.0
-                    else:
-                        exp_T[(s, a, s_)] = sas_counter[(s, a, s_)] / sa_counter[(s, a)]
+        for s, a, s_ in sas_counter.keys():
+            exp_T[(s, a, s_)] = sas_counter[(s, a, s_)] / sa_counter[(s, a)]
         self.T = exp_T
 
-        for s in self.state_space:
-            for a_idx, a in enumerate(self.action_space):
-                if sa_counter[(s, a)] > 0:
-                    prob_win[(s, a)] = win_count[(s, a)] / sa_counter[(s, a)]
-                elif a_idx > 0:
-                    prob_win[(s, a)] = prob_win[(s, self.action_space[a_idx - 1])]
+        for s, a in sa_counter.keys():
+            prob_win[(s, a)] = win_count[(s, a)] / sa_counter[(s, a)]
         self.prob_win = prob_win
 
         self.perform_price_prediction(highest_other_bid)
 
     def get_next_state(self, current_state, won_this_round, price_this_round):
-        if not won_this_round:
-            s_ = (current_state[0], current_state[1] + 1, current_state[2] + (0.0,))
-        else:
-            s_ = (current_state[0] + 1, current_state[1] + 1, current_state[2] + (price_this_round,))
+        X = current_state[0] + int(won_this_round)
+        j = current_state[1] + 1
+        pvec = current_state[2] + (price_this_round,)
+        s_ = (X, j, pvec)
         return s_
 
     def calc_transition_matrix(self):
