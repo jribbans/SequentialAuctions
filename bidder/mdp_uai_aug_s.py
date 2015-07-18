@@ -32,9 +32,11 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         # Init will call make_state_space, but we need some more information before going through this process.
         MDPBidderUAI.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
         self.num_price_samples = len(self.action_space) # Not used
-        self.num_prices_for_state = len(self.action_space) - 1
-        state_price_delta = float(max(possible_types) - min(possible_types)) / self.num_prices_for_state
-        self.prices_in_state = [i * state_price_delta for i in range(self.num_prices_for_state)]
+        #self.num_prices_for_state = len(self.action_space) - 1
+        #state_price_delta = float(max(possible_types) - min(possible_types)) / self.num_prices_for_state
+        #self.prices_in_state = [i * state_price_delta for i in range(self.num_prices_for_state)]
+        self.num_prices_for_state = 2
+        self.prices_in_state = [0, 3, 10]
         self.make_state_space_after_init()
 
     def make_state_space(self):
@@ -102,12 +104,11 @@ class MDPBidderUAIAugS(MDPBidderUAI):
                     num_won += 1
                     won_this_round = True
                 elif largest_bid_amongst_n_minus_1 == a:
-                    num_same_bid = sum(b == a for b in sa.bids[j][:-1])
-                    prob_winning_tie = num_same_bid / self.num_bidders
-                    win_count[(s, a)] += prob_winning_tie
-                    exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1 * prob_winning_tie
-                    won_this_round = bool(bernoulli.rvs(prob_winning_tie))
-                    num_won += 1 if won_this_round else 0
+                    won_this_round = bidders[-1].win[j]
+                    if won_this_round:
+                        win_count[(s, a)] += 1
+                        exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1
+                        num_won += 1
                 if won_this_round:
                     last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - sa.payments[j]))
                 else:

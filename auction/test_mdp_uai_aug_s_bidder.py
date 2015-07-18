@@ -18,39 +18,39 @@ num_bidders = 2
 
 # Values in possible_types must be increasing.
 # possible_types = [i / 100.0 for i in range(101)]
-possible_types = [i / 20.0 for i in range(21)]
+# possible_types = [i / 20.0 for i in range(21)]
+possible_types = [3, 10]
 # possible_types = [i / 10.0 for i in range(11)]
 # possible_types = [i for i in range(3)]
-type_dist_disc = False
+type_dist_disc = True
 if type_dist_disc:
     type_dist = [1.0 / len(possible_types)] * len(possible_types)
 else:
     type_dist = [1.0] * len(possible_types)
 
-num_mc = 100000
+num_mc = 1000
 
-bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-           for i in range(num_bidders)]
+# bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+#           for i in range(num_bidders)]
 # bidders = [MenezesMonteiroBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 #           for i in range(num_bidders)]
-# bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-#           for i in range(num_bidders)]
+bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+           for i in range(num_bidders)]
 # bidders = [WeberBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 #           for i in range(num_bidders)]
 learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 learner.learn_auction_parameters(bidders, num_mc)
 
+print('Transitions')
+for k in learner.T.keys():
+    if learner.T[k] > 0.000000001:
+        print(k[0], '    ', k[1], '    ', k[2], '    ', learner.T[k])
+
 # Check that this runs
-learner.valuations = [.5, .1]
+learner.valuations = [3, 10]
 learner.calc_expected_rewards()
 learner.solve_mdp()
-# for s in learner.state_space:
-#    for a in learner.action_space:
-#        print(s, a, learner.R[(s, a)])
 
-# for k in learner.T.keys():
-#    if learner.T[k] > 0.00001:
-#        print(k, learner.T[k])
 
 # Compare against a bidder
 bidders[0].reset()
@@ -72,7 +72,7 @@ for t_idx, t in enumerate(learner.possible_types):
     learner.num_goods_won = 1
     lb11[t_idx] = learner.place_bid(2)
     learner.num_goods_won = 0
-    print(learner.valuations, lb0[t_idx], lb10[t_idx], lb11[t_idx])
+    # print(learner.valuations, lb0[t_idx], lb10[t_idx], lb11[t_idx])
 
 """
 plt.figure()
@@ -86,7 +86,7 @@ for s in learner.price_prediction.keys():
     plt.legend()
 plt.show()
 """
-
+"""
 plt.figure()
 plt.plot(possible_types, b0, label='Katzman')
 plt.plot(possible_types, lb0, label='MDP', marker='o', markersize=3)
@@ -94,3 +94,4 @@ plt.xlabel('Valuation')
 plt.ylabel('Bid')
 plt.legend()
 plt.show()
+"""

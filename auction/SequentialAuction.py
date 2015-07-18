@@ -2,12 +2,13 @@
 Implements a class that runs a sequential auction of homogeneous goods, where one good is auctioned off in each
 round.  Bidders pay the second highest price in each round.
 """
-from heapq import nlargest
+import random
 
 
 class SequentialAuction:
     """Sequential auction where the bidder with the highest bid in each round pays the second highest price.
     """
+
     def __init__(self, bidders, num_rounds):
         """
         :param bidders: List.  A list of bidders participating in the auction.
@@ -31,9 +32,11 @@ class SequentialAuction:
             for i in range(self.num_bidders):
                 self.bids[r][i] = self.bidders[i].place_bid(round_number)
             # Winner determination
-            self.winners[r] = self.bids[r].index(max(self.bids[r]))
+            candidates = [i for i in range(self.num_rounds)
+                          if self.bids[r][i] == max(self.bids[r])]
+            self.winners[r] = random.choice(candidates)
             # Determine payment
-            self.payments[r] = float(nlargest(2, self.bids[r])[1])
+            self.payments[r] = float(sorted(self.bids[r])[-2])
             self.total_revenue += self.payments[r]
             # Notify winning bidder
             for i, b in enumerate(self.bidders):
