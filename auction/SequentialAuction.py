@@ -32,7 +32,7 @@ class SequentialAuction:
             for i in range(self.num_bidders):
                 self.bids[r][i] = self.bidders[i].place_bid(round_number)
             # Winner determination
-            candidates = [i for i in range(self.num_rounds)
+            candidates = [i for i in range(self.num_bidders)
                           if self.bids[r][i] == max(self.bids[r])]
             self.winners[r] = random.choice(candidates)
             # Determine payment
