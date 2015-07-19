@@ -38,9 +38,16 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         self.prices_in_state = [i * state_price_delta for i in range(self.num_prices_for_state)]
         # self.num_prices_for_state = 2
         # self.prices_in_state = [0, 3, 10]
-        self.make_state_space_after_init()
+        # self.make_state_space_after_init()
+        self.prices_in_state = set()
+        self.state_space = set()
+        self.terminal_states = set()
+        self.action_space = set()
 
     def make_state_space(self):
+        pass
+
+    def make_action_space(self):
         pass
 
     def make_state_space_after_init(self):
@@ -71,6 +78,7 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         highest_other_bid = defaultdict(list)
 
         sa = SequentialAuction(bidders, self.num_rounds)
+        self.state_space.add((0, 0, ()))
         for t in range(num_mc):
             # Refresh bidders
             for bidder in bidders:
@@ -83,10 +91,11 @@ class MDPBidderUAIAugS(MDPBidderUAI):
             s = s_ = (0, 0, ())
             for j in range(self.num_rounds):
                 s = s_
-                largest_bid_amongst_n_minus_1 = max(sa.bids[j][:-1])
+                largest_bid_amongst_n_minus_1 = round(max(sa.bids[j][:-1]), 2)
                 highest_other_bid[s].append(largest_bid_amongst_n_minus_1)
                 # The action closest to the Nth bidder
-                a = min(self.action_space, key=lambda x: abs(x - sa.bids[j][-1]))
+                a = round(sa.bids[j][-1], 2)
+                self.action_space.add(a)
                 sa_counter[(s, a)] += 1
                 won_this_round = bidders[-1].win[j]
                 # Outcome depends on the action we placed, which is hopefully close to what the Nth bidder used.
@@ -94,11 +103,27 @@ class MDPBidderUAIAugS(MDPBidderUAI):
                     win_count[(s, a)] += 1
                     exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1
                     num_won += 1
-                    last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - sa.payments[j]))
+                    p = round(sa.payments[j], 2)
+                    self.prices_in_state.add(p)
+                    last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - p))
                 else:
                     last_price_seen = 0.0
                 s_ = self.get_next_state(s, won_this_round, last_price_seen)
+                self.state_space.add(s_)
                 sas_counter[(s, a, s_)] += 1
+            self.state_space.add(s_)
+            self.terminal_states.add(s_)
+
+        # Turn these into lists and sort them, so that access is ordered and predictable.
+        self.state_space = list(self.state_space)
+        self.state_space.sort()
+        self.terminal_states = list(self.terminal_states)
+        self.terminal_states.sort()
+        self.action_space = list(self.action_space)
+        self.action_space.sort()
+        self.prices_in_state = list(self.prices_in_state)
+        self.prices_in_state.sort()
+        self.num_price_samples = len(self.prices_in_state)
 
         self.exp_payment = {(s, a): exp_payment[(s, a)] / sa_counter[(s, a)]
                             for (s, a) in sa_counter.keys()}
