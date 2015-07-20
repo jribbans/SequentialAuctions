@@ -5,6 +5,7 @@ from bidder.simple import SimpleBidder
 import random
 import numpy
 import itertools
+import operator
 
 # Initialize random number seeds for repeatability
 random.seed(0)
@@ -53,7 +54,7 @@ for v in itertools.product(possible_types, repeat=num_rounds):
             continue
         for a in learner.action_space:
             Q[a] = learner.Q[(s,a)]
-        best_action = max(k for k, v in Q.items())
+        best_action = max(Q.items(), key=operator.itemgetter(1))[0]
         print('State', s, '. Optimal Action =' , best_action, '. Q of each action:', Q)
     print('Values at terminal states')
     for s in learner.terminal_states:
