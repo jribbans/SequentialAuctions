@@ -10,7 +10,7 @@ import numpy
 import scipy.integrate
 import scipy.interpolate
 from auction.SequentialAuction import SequentialAuction
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 
 class MDPBidderUAI(AbstractMDPBidder):
@@ -130,7 +130,8 @@ class MDPBidderUAI(AbstractMDPBidder):
                          for (s, a) in sa_counter.keys()}
 
         self.perform_price_prediction(highest_other_bid)
-        self.calc_transition_matrix()
+        #self.calc_transition_matrix()
+        self.T = self.exp_T
 
     def get_next_state(self, current_state, won_this_round):
         X = current_state[0] + int(won_this_round)
@@ -148,15 +149,15 @@ class MDPBidderUAI(AbstractMDPBidder):
                 continue
             highest_other_bid[s].sort()
             if self.type_dist_disc:
-                # Generate a histogram and obtain probability mass values
-                hist, bin_edges = numpy.histogram(highest_other_bid[s], self.num_price_samples, density=False)
-                self.price_prediction[s] = bin_edges[:-1].tolist()
-                hist = hist.tolist()
-                total = float(sum(hist))
-                hist = [h / total for h in hist]
-                assert abs(sum(hist) - 1.0) < .00001, "Probability mass values are not correct"
+                bid_counter = Counter(highest_other_bid[s])
+                bids = list(bid_counter.keys())
+                hist = [bid_counter[b] for b in bids]
+                normalization = float(sum(hist))
+                hist = [h / normalization for h in hist]
+                self.price_prediction[s] = bids
                 self.price_pdf[s] = hist
                 self.price_cdf[s] = numpy.cumsum(hist).tolist()
+                print(hist, normalization, set(highest_other_bid[s]), self.price_cdf[s])
             else:
                 # Generate a histogram and obtain probability density values
                 hist, bin_edges = numpy.histogram(highest_other_bid[s], self.num_price_samples, density=True)
@@ -179,14 +180,17 @@ class MDPBidderUAI(AbstractMDPBidder):
                                                     kind='slinear')
             Fb = [0] * len(self.action_space)
             for a_idx, a in enumerate(self.action_space):
-                if a < self.price_prediction[s][0]:
-                    Fb[a_idx] = 0.0
-                elif a > self.price_prediction[s][-1]:
-                    Fb[a_idx] = 1.0
+                if a in self.price_prediction[s]:
+                    Fb[a_idx] = self.price_pdf[s][a_idx]
                 else:
-                    Fb[a_idx] = float(interp_cdf(a))
-                if math.isnan(Fb[a_idx]):
-                    Fb[a_idx] = 0.0
+                    if a < self.price_prediction[s][0]:
+                        Fb[a_idx] = 0.0
+                    elif a > self.price_prediction[s][-1]:
+                        Fb[a_idx] = 1.0
+                    else:
+                        Fb[a_idx] = float(interp_cdf(a))
+                    if math.isnan(Fb[a_idx]):
+                        Fb[a_idx] = 0.0
             # Update the transition matrix
             for a_idx, a in enumerate(self.action_space):
                 win_state = (s[0] + 1, s[1] + 1)
