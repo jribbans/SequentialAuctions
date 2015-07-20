@@ -55,25 +55,28 @@ learner.solve_mdp()
 
 # Compare against a bidder
 bidders[0].reset()
-b0 = [0] * len(bidders[0].possible_types)
-lb0 = [0] * len(learner.possible_types)
-lb10 = [0] * len(learner.possible_types)
-for t_idx, t in enumerate(learner.possible_types):
-    if t < .000001:
-        continue
-    vvec = [t, learner.possible_types[t_idx - 1]]
-    bidders[0].valuations = vvec
-    learner.valuations = vvec
-    if t_idx == 0:
+num_trials = 100
+b0 = [0] * num_trials
+lb0 = [0] * num_trials
+lb10 = [0] * num_trials
+val0 = [0] * num_trials
+val1 = [0] * num_trials
+for r in range(num_trials):
+    bidders[0].valuations = bidders[0].make_valuations()
+    learner.valuations = bidders[0].valuations
+    val0[r] = bidders[0].valuations[0]
+    if num_rounds > 1:
+        val1[r] = bidders[0].valuations[1]
+    if r == 0:
         learner.calc_expected_rewards()
     else:
         learner.calc_terminal_state_rewards()
     learner.solve_mdp()
-    b0[t_idx] = bidders[0].place_bid(1)
-    lb0[t_idx] = learner.place_bid(1)
+    b0[r] = bidders[0].place_bid(1)
+    lb0[r] = learner.place_bid(1)
     if num_rounds > 1:
-        lb10[t_idx] = learner.place_bid(2)
-    print(learner.valuations, lb0[t_idx], lb10[t_idx])
+        lb10[r] = learner.place_bid(2)
+    print(learner.valuations, lb0[r], lb10[r])
 
 """
 plt.figure()
@@ -89,8 +92,8 @@ plt.show()
 """
 
 plt.figure()
-plt.plot(possible_types, b0, label='Katzman')
-plt.plot(possible_types, lb0, label='MDP', marker='o', markersize=3)
+plt.scatter(val0, b0, label='Katzman', marker='x')
+plt.scatter(val0, lb0, label='MDP', marker='o')
 plt.xlabel('Valuation')
 plt.ylabel('Bid')
 plt.legend()
