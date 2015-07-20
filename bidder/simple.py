@@ -100,7 +100,7 @@ class SimpleBidder:
         self.bid[r] = self.valuations[self.num_goods_won]
         return self.bid[r]
 
-    def set_round_result(self, current_round, is_winner, payment, price=None):
+    def set_round_result(self, current_round, is_winner, payment, announced_price=None):
         """
         Notifies the bidder of the results of the current auction round.
 
@@ -112,7 +112,7 @@ class SimpleBidder:
         x = 1 if is_winner else 0
         self.payment[r] = payment
         self.utility[r] = self.valuations[self.num_goods_won] * x - payment
-        self.anounced_price[r] = price
+        self.anounced_price[r] = announced_price
         if is_winner:
             self.win[r] = True
             # Do this last, since it's the current valuation we need to compute utility.
