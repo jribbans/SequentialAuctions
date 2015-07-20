@@ -176,6 +176,8 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         :return: bid: Float.  The bid the bidder will place.
         """
         r = current_round - 1
+        if r > 0:
+            self.payment[r - 1] = round(self.payment[r - 1], 2)
         s = (self.num_goods_won, r, tuple(self.payment[:r]))
         maxQ = -float('inf')
         for a in self.action_space:
