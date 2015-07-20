@@ -45,6 +45,7 @@ for v in itertools.product(possible_types, repeat=num_rounds):
     else:
         learner.calc_terminal_state_rewards()
     learner.solve_mdp()
+    print('V = ', v, 'First round bid = ', learner.place_bid(1))
 
 # Compare utility of simple vs learned
 print('Run Learner and see how it does')
