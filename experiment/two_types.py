@@ -52,7 +52,6 @@ print('Run Learner and see how it does')
 num_trials = 1000
 sa = SequentialAuction(bidders, num_rounds)
 util_simple = [-1] * num_trials
-util_learner = [-1] * num_trials
 for t in range(num_trials):
     for bidder in bidders:
         bidder.reset()
@@ -61,7 +60,6 @@ for t in range(num_trials):
     util_simple[t] = sum(bidders[1].utility)
 
 sa = SequentialAuction([bidders[0], learner], num_rounds)
-util_simple = [-1] * num_trials
 util_learner = [-1] * num_trials
 for t in range(num_trials):
     for bidder in bidders:
