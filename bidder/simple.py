@@ -100,7 +100,7 @@ class SimpleBidder:
         self.bid[r] = self.valuations[self.num_goods_won]
         return self.bid[r]
 
-    def set_round_result(self, current_round, is_winner, payment, price=0):
+    def set_round_result(self, current_round, is_winner, payment, price=None):
         """
         Notifies the bidder of the results of the current auction round.
 

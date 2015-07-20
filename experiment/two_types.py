@@ -7,8 +7,8 @@ import numpy
 import itertools
 
 # Initialize random number seeds for repeatability
-random.seed(2**31 - 1)
-numpy.random.seed(75)
+random.seed(0)
+numpy.random.seed(0)
 
 # Auction parameters
 num_rounds = 2
@@ -23,8 +23,8 @@ type_dist = [.8, .2]
 num_mc = 30000
 bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
            for i in range(num_bidders)]
-#learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+#learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 learner.learn_auction_parameters(bidders, num_mc)
 
 # Display what was learned
