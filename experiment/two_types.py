@@ -20,7 +20,7 @@ type_dist_disc = True
 type_dist = [.8, .2]
 
 # Learn the MDP
-num_mc = 30000
+num_mc = 500000
 bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
            for i in range(num_bidders)]
 learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
@@ -45,11 +45,24 @@ for v in itertools.product(possible_types, repeat=num_rounds):
     else:
         learner.calc_terminal_state_rewards()
     learner.solve_mdp()
-    print('V = ', v, 'First round bid = ', learner.place_bid(1))
+    print('Valuation vector =', v)
+    print('First round bid =', learner.place_bid(1))
+    for s in learner.state_space:
+        Q = {}
+        if s in learner.terminal_states:
+            continue
+        for a in learner.action_space:
+            Q[a] = learner.Q[(s,a)]
+        best_action = max(k for k, v in Q.items())
+        print('State', s, '. Optimal Action =' , best_action, '. Q of each action:', Q)
+    print('Values at terminal states')
+    for s in learner.terminal_states:
+        print('State', s, '. V[s] =', learner.V[s])
 
 # Compare utility of simple vs learned
 print('Run Learner and see how it does')
 num_trials = 1000
+
 sa = SequentialAuction(bidders, num_rounds)
 util_simple = [-1] * num_trials
 for t in range(num_trials):
