@@ -157,7 +157,6 @@ class MDPBidderUAI(AbstractMDPBidder):
                 self.price_prediction[s] = bids
                 self.price_pdf[s] = hist
                 self.price_cdf[s] = numpy.cumsum(hist).tolist()
-                print(hist, normalization, set(highest_other_bid[s]), self.price_cdf[s])
             else:
                 # Generate a histogram and obtain probability density values
                 hist, bin_edges = numpy.histogram(highest_other_bid[s], self.num_price_samples, density=True)

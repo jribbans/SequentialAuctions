@@ -32,6 +32,7 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         self.num_prices_for_state = len(self.action_space) - 1
         state_price_delta = float(max(possible_types) - min(possible_types)) / self.num_prices_for_state
         self.prices_in_state = [i * state_price_delta for i in range(self.num_prices_for_state)]
+        self.digit_precision = 2 # Learn values to this precision
         # self.num_prices_for_state = 2
         # self.prices_in_state = [0, 3, 10]
         # self.make_state_space_after_init()
@@ -87,10 +88,10 @@ class MDPBidderUAIAugS(MDPBidderUAI):
             s = s_ = (0, 0, ())
             for j in range(self.num_rounds):
                 s = s_
-                largest_bid_amongst_n_minus_1 = round(max(sa.bids[j][:-1]), 2)
+                largest_bid_amongst_n_minus_1 = round(max(sa.bids[j][:-1]), self.digit_precision)
                 highest_other_bid[s].append(largest_bid_amongst_n_minus_1)
                 # The action closest to the Nth bidder
-                a = round(sa.bids[j][-1], 2)
+                a = round(sa.bids[j][-1], self.digit_precision)
                 self.action_space.add(a)
                 sa_counter[(s, a)] += 1
                 won_this_round = bidders[-1].win[j]
@@ -99,7 +100,7 @@ class MDPBidderUAIAugS(MDPBidderUAI):
                     win_count[(s, a)] += 1
                     exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1
                     num_won += 1
-                    p = round(sa.payments[j], 2)
+                    p = round(sa.payments[j], self.digit_precision)
                     self.prices_in_state.add(p)
                     last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - p))
                 else:
@@ -173,7 +174,7 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         """
         r = current_round - 1
         if r > 0:
-            self.payment[r - 1] = round(self.payment[r - 1], 2)
+            self.payment[r - 1] = round(self.payment[r - 1], self.digit_precision)
         s = (self.num_goods_won, r, tuple(self.payment[:r]))
         maxQ = -float('inf')
         for a in self.action_space:
