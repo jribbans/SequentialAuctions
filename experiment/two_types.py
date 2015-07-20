@@ -24,7 +24,7 @@ num_mc = 30000
 bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
            for i in range(num_bidders)]
 learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-#learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+# learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 learner.learn_auction_parameters(bidders, num_mc)
 
 # Display what was learned
@@ -45,7 +45,6 @@ for v in itertools.product(possible_types, repeat=num_rounds):
     else:
         learner.calc_terminal_state_rewards()
     learner.solve_mdp()
-    print('Valuations: ', v, '\tBids in rounds 0 and 1 (no goods won):', learner.place_bid(1), learner.place_bid(2))
 
 # Compare utility of simple vs learned
 print('Run Learner and see how it does')

@@ -1,10 +1,7 @@
 """
-Implements a bidder that learns how to bid using a Markov Decision Process described in [1].
+Implements a bidder that learns how to bid using a Markov Decision Process.
 
-The states have been modified so that after round 1, prices are stored.
-
-[1] Greenwald, Amy, and Justin Boyan. "Bidding under uncertainty: Theory and experiments." Proceedings of the 20th
-conference on Uncertainty in artificial intelligence. AUAI Press, 2004.
+States are tuples that store whether the bidder has won and the announced price.
 """
 from bidder.mdp_uai import MDPBidderUAI
 from auction.SequentialAuction import SequentialAuction
@@ -33,9 +30,6 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         state_price_delta = float(max(possible_types) - min(possible_types)) / self.num_prices_for_state
         self.prices_in_state = [i * state_price_delta for i in range(self.num_prices_for_state)]
         self.digit_precision = 2 # Learn values to this precision
-        # self.num_prices_for_state = 2
-        # self.prices_in_state = [0, 3, 10]
-        # self.make_state_space_after_init()
         self.prices_in_state = set()
         self.state_space = set()
         self.terminal_states = set()
@@ -50,14 +44,7 @@ class MDPBidderUAIAugS(MDPBidderUAI):
     def make_state_space_after_init(self):
         """
         """
-        for X in range(self.num_rounds + 1):
-            for j in range(self.num_rounds + 1):
-                # Number of goods won cannot exceed the round number
-                if X <= j:
-                    for p in itertools.product(self.prices_in_state, repeat=j):
-                        self.state_space.append((X, j, p))
-                        if j == self.num_rounds:
-                            self.terminal_states.append((X, j, p))
+        pass
 
     def learn_auction_parameters(self, bidders, num_mc=1000):
         """
@@ -75,7 +62,7 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         highest_other_bid = defaultdict(list)
 
         sa = SequentialAuction(bidders, self.num_rounds)
-        self.state_space.add((0, 0, ()))
+        self.state_space.add(())
         for t in range(num_mc):
             # Refresh bidders
             for bidder in bidders:
@@ -85,7 +72,7 @@ class MDPBidderUAIAugS(MDPBidderUAI):
             sa.run()
             num_won = 0
             last_price_seen = None
-            s = s_ = (0, 0, ())
+            s = s_ = (())
             for j in range(self.num_rounds):
                 s = s_
                 largest_bid_amongst_n_minus_1 = round(max(sa.bids[j][:-1]), self.digit_precision)
@@ -95,17 +82,14 @@ class MDPBidderUAIAugS(MDPBidderUAI):
                 self.action_space.add(a)
                 sa_counter[(s, a)] += 1
                 won_this_round = bidders[-1].win[j]
+                price_this_round = round(sa.payments[j], self.digit_precision)
                 # Outcome depends on the action we placed, which is hopefully close to what the Nth bidder used.
                 if won_this_round:
                     win_count[(s, a)] += 1
                     exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1
                     num_won += 1
-                    p = round(sa.payments[j], self.digit_precision)
-                    self.prices_in_state.add(p)
-                    last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - p))
-                else:
-                    last_price_seen = 0.0
-                s_ = self.get_next_state(s, won_this_round, last_price_seen)
+                    self.prices_in_state.add(price_this_round)
+                s_ = self.get_next_state(s, won_this_round, price_this_round)
                 self.state_space.add(s_)
                 sas_counter[(s, a, s_)] += 1
             self.state_space.add(s_)
@@ -134,10 +118,7 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         self.perform_price_prediction(highest_other_bid)
 
     def get_next_state(self, current_state, won_this_round, price_this_round):
-        X = current_state[0] + int(won_this_round)
-        j = current_state[1] + 1
-        pvec = current_state[2] + (price_this_round,)
-        s_ = (X, j, pvec)
+        s_ = current_state + ((int(won_this_round), price_this_round),)
         return s_
 
     def calc_transition_matrix(self):
@@ -160,9 +141,12 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         """
         for s in self.terminal_states:
             for a in self.action_space:
-                X = s[0]
-                p = sum(s[2])
-                self.R[(s, a)] = sum(self.valuations[:X]) - p
+                total_paid = 0.0
+                num_won = 0
+                for results in s:
+                    num_won += results[0]
+                    total_paid += results[1]
+                self.R[(s, a)] = sum(self.valuations[:num_won]) - total_paid
 
     def place_bid(self, current_round):
         """
@@ -174,8 +158,10 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         """
         r = current_round - 1
         if r > 0:
-            self.payment[r - 1] = round(self.payment[r - 1], self.digit_precision)
-        s = (self.num_goods_won, r, tuple(self.payment[:r]))
+            self.announced_price[r - 1] = round(self.announced_price[r - 1], self.digit_precision)
+        s = ()
+        for t in range(r):
+            s = s + ((int(self.win[t]), self.announced_price[t]),)
         maxQ = -float('inf')
         for a in self.action_space:
             maxQ = max(maxQ, self.Q[(s, a)])
