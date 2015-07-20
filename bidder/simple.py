@@ -40,7 +40,7 @@ class SimpleBidder:
         self.win = [False] * num_rounds
         self.payment = [0] * num_rounds
         self.utility = [0] * num_rounds
-        self.anounced_price = [0] * num_rounds
+        self.announced_price = [0] * num_rounds
 
     def reset(self):
         """
@@ -51,7 +51,7 @@ class SimpleBidder:
         self.win = [False] * self.num_rounds
         self.payment = [0] * self.num_rounds
         self.utility = [0] * self.num_rounds
-        self.anounced_price = [0] * self.num_rounds
+        self.announced_price = [0] * self.num_rounds
 
     def calc_type_dist_cdf(self):
         """
@@ -112,7 +112,7 @@ class SimpleBidder:
         x = 1 if is_winner else 0
         self.payment[r] = payment
         self.utility[r] = self.valuations[self.num_goods_won] * x - payment
-        self.anounced_price[r] = announced_price
+        self.announced_price[r] = announced_price
         if is_winner:
             self.win[r] = True
             # Do this last, since it's the current valuation we need to compute utility.
