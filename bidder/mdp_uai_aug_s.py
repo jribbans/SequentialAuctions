@@ -145,7 +145,7 @@ class MDPBidderUAIAugS(MDPBidderUAI):
                 num_won = 0
                 for results in s:
                     num_won += results[0]
-                    total_paid += results[1]
+                    total_paid += results[1] * results[0]
                 self.R[(s, a)] = sum(self.valuations[:num_won]) - total_paid
 
     def place_bid(self, current_round):
