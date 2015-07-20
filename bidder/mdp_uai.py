@@ -29,7 +29,7 @@ class MDPBidderUAI(AbstractMDPBidder):
         """
         # Init will call make_state_space, but we need some more information before going through this process.
         AbstractMDPBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-        self.num_price_samples = len(self.action_space)  # Not used
+        self.num_price_samples = len(self.action_space)
         self.num_prices_for_state = len(self.action_space) - 1
         state_price_delta = float(max(possible_types) - min(possible_types)) / self.num_prices_for_state
         self.prices_in_state = [i * state_price_delta for i in range(self.num_prices_for_state)]
@@ -106,6 +106,8 @@ class MDPBidderUAI(AbstractMDPBidder):
                 sas_counter[(s, a, s_)] += 1
             self.state_space.add(s_)
             self.terminal_states.add(s_)
+
+        self.num_price_samples = len(self.action_space)
 
         # Turn these into lists and sort them, so that access is ordered and predictable.
         self.state_space = list(self.state_space)
