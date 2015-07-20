@@ -1,5 +1,6 @@
 from auction.SequentialAuction import SequentialAuction
 from bidder.mdp_uai_aug_s import MDPBidderUAIAugS
+from bidder.mdp_uai import MDPBidderUAI
 from bidder.simple import SimpleBidder
 import random
 import numpy
@@ -23,6 +24,7 @@ num_mc = 30000
 bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
            for i in range(num_bidders)]
 learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+#learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 learner.learn_auction_parameters(bidders, num_mc)
 
 # Display what was learned

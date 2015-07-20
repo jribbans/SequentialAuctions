@@ -10,7 +10,7 @@ import numpy
 import scipy.integrate
 import scipy.interpolate
 from auction.SequentialAuction import SequentialAuction
-from scipy.stats import bernoulli
+from collections import defaultdict
 
 
 class MDPBidderUAI(AbstractMDPBidder):
@@ -27,23 +27,33 @@ class MDPBidderUAI(AbstractMDPBidder):
         :param type_dist: List.  Probabilities corresponding to each entry in possible_types.
         :param type_dist_disc: Boolean.  True if type_dist is describing a discrete distribution.
         """
+        # Init will call make_state_space, but we need some more information before going through this process.
         AbstractMDPBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-        self.num_price_samples = len(self.action_space)
+        self.num_price_samples = len(self.action_space)  # Not used
+        self.num_prices_for_state = len(self.action_space) - 1
+        state_price_delta = float(max(possible_types) - min(possible_types)) / self.num_prices_for_state
+        self.prices_in_state = [i * state_price_delta for i in range(self.num_prices_for_state)]
+        self.prices_in_state = set()
+        self.state_space = set()
+        self.terminal_states = set()
+        self.action_space = set()
 
     def make_state_space(self):
+        pass
+
+    def make_action_space(self):
+        pass
+
+    def make_state_space_after_init(self):
         """
         """
         for X in range(self.num_rounds + 1):
             for j in range(self.num_rounds + 1):
-                self.state_space.append((X, j))
-        for X in range(self.num_rounds + 1):
-            self.terminal_states.append((X, self.num_rounds))
-
-    def make_action_space(self):
-        """
-        """
-        for a in self.possible_types:
-            self.action_space.append(a)
+                # Number of goods won cannot exceed the round number
+                if X <= j:
+                    self.state_space.append((X, j))
+                    if j == self.num_rounds:
+                        self.terminal_states.append((X, j))
 
     def learn_auction_parameters(self, bidders, num_mc=1000):
         """
@@ -52,25 +62,16 @@ class MDPBidderUAI(AbstractMDPBidder):
         :param bidders: List.  Bidders to learn from.
         :param num_mc: Integer.  Number of times to test an action.
         """
-        exp_payment = {}
-        exp_T = {}
-        prob_win = {}
-        win_count = {}
-        sa_counter = {}
-        sas_counter = {}
-        highest_other_bid = {}
-        for s in self.state_space:
-            highest_other_bid[s] = []
-            for a in self.action_space:
-                exp_payment[(s, a)] = 0.0
-                prob_win[(s, a)] = 0.0
-                win_count[(s, a)] = 0.0
-                sa_counter[(s, a)] = 0.0
-                for s_ in self.state_space:
-                    sas_counter[(s, a, s_)] = 0.0
-                    exp_T[(s, a, s_)] = 0.0
+        exp_payment = defaultdict(float)
+        exp_T = defaultdict(float)
+        prob_win = defaultdict(float)
+        win_count = defaultdict(float)
+        sa_counter = defaultdict(float)
+        sas_counter = defaultdict(float)
+        highest_other_bid = defaultdict(list)
 
         sa = SequentialAuction(bidders, self.num_rounds)
+        self.state_space.add((0, 0))
         for t in range(num_mc):
             # Refresh bidders
             for bidder in bidders:
@@ -79,58 +80,61 @@ class MDPBidderUAI(AbstractMDPBidder):
             # Run auction and learn results of nth bidder
             sa.run()
             num_won = 0
+            last_price_seen = None
+            s = s_ = (0, 0)
             for j in range(self.num_rounds):
-                largest_bid_amongst_n_minus_1 = max(sa.bids[j][:-1])
-                s = (num_won, j)
+                s = s_
+                largest_bid_amongst_n_minus_1 = round(max(sa.bids[j][:-1]), 2)
                 highest_other_bid[s].append(largest_bid_amongst_n_minus_1)
-                a = min(self.action_space, key=lambda x: abs(x - sa.bids[j][-1]))
+                # The action closest to the Nth bidder
+                a = round(sa.bids[j][-1], 2)
+                self.action_space.add(a)
                 sa_counter[(s, a)] += 1
-                if largest_bid_amongst_n_minus_1 < a:
+                won_this_round = bidders[-1].win[j]
+                # Outcome depends on the action we placed, which is hopefully close to what the Nth bidder used.
+                if won_this_round:
                     win_count[(s, a)] += 1
                     exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1
                     num_won += 1
-                    s_ = (num_won, j + 1)
-                    sas_counter[(s, a, s_)] += 1
-                elif largest_bid_amongst_n_minus_1 == a:
-                    num_same_bid = sum(b == a for b in sa.bids[j][:-1])
-                    prob_winning_tie = num_same_bid / self.num_bidders
-                    win_count[(s, a)] += prob_winning_tie
-                    exp_payment[(s, a)] -= largest_bid_amongst_n_minus_1 * prob_winning_tie
-                    won_this_round = bernoulli.rvs(prob_winning_tie)
-                    num_won += won_this_round
-                    s_ = (num_won, j + 1)
-                    sas_counter[(s, a, s_)] += 1
+                    p = round(sa.payments[j], 2)
+                    self.prices_in_state.add(p)
+                    last_price_seen = min(self.prices_in_state, key=lambda x: abs(x - p))
                 else:
-                    s_ = (num_won, j + 1)
-                    sas_counter[(s, a, s_)] += 1
+                    last_price_seen = 0.0
+                s_ = self.get_next_state(s, won_this_round)
+                self.state_space.add(s_)
+                sas_counter[(s, a, s_)] += 1
+            self.state_space.add(s_)
+            self.terminal_states.add(s_)
 
-        for s in self.state_space:
-            for a_idx, a in enumerate(self.action_space):
-                if sa_counter[(s, a)] > 0:
-                    exp_payment[(s, a)] /= sa_counter[(s, a)]
-                elif a_idx > 0:
-                    exp_payment[(s, a)] = exp_payment[(s, self.action_space[a_idx - 1])]
-        self.exp_payment = exp_payment
+        # Turn these into lists and sort them, so that access is ordered and predictable.
+        self.state_space = list(self.state_space)
+        self.state_space.sort()
+        self.terminal_states = list(self.terminal_states)
+        self.terminal_states.sort()
+        self.action_space = list(self.action_space)
+        self.action_space.sort()
+        self.prices_in_state = list(self.prices_in_state)
+        self.prices_in_state.sort()
+        self.num_price_samples = len(self.prices_in_state)
 
-        for s in self.state_space:
-            for a_idx, a in enumerate(self.action_space):
-                for s_ in self.state_space:
-                    if sa_counter[(s, a)] == 0:
-                        exp_T[(s, a, s_)] = 0.0
-                    else:
-                        exp_T[(s, a, s_)] = sas_counter[(s, a, s_)] / sa_counter[(s, a)]
-        self.exp_T = exp_T
+        self.exp_payment = {(s, a): exp_payment[(s, a)] / sa_counter[(s, a)]
+                            for (s, a) in sa_counter.keys()}
 
-        for s in self.state_space:
-            for a_idx, a in enumerate(self.action_space):
-                if sa_counter[(s, a)] > 0:
-                    prob_win[(s, a)] = win_count[(s, a)] / sa_counter[(s, a)]
-                elif a_idx > 0:
-                    prob_win[(s, a)] = prob_win[(s, self.action_space[a_idx - 1])]
-        self.prob_win = prob_win
+        self.exp_T = {(s, a, s_): sas_counter[(s, a, s_)] / sa_counter[(s, a)]
+                      for (s, a, s_) in sas_counter.keys()}
+
+        self.prob_win = {(s, a): win_count[(s, a)] / sa_counter[(s, a)]
+                         for (s, a) in sa_counter.keys()}
 
         self.perform_price_prediction(highest_other_bid)
         self.calc_transition_matrix()
+
+    def get_next_state(self, current_state, won_this_round):
+        X = current_state[0] + int(won_this_round)
+        j = current_state[1] + 1
+        s_ = (X, j)
+        return s_
 
     def perform_price_prediction(self, highest_other_bid):
         """
@@ -197,7 +201,7 @@ class MDPBidderUAI(AbstractMDPBidder):
                 r = [-p if p <= a else 0.0 for p in self.price_prediction[s]]
                 if self.type_dist_disc:
                     to_sum = [r[p_idx] * self.price_pdf[s][p_idx]
-                                    for p_idx, p in enumerate(self.price_prediction[s])]
+                              for p_idx, p in enumerate(self.price_prediction[s])]
                     self.R[(s, a)] = sum(to_sum[i]
                                          for i in range(len(to_sum)))
                 else:

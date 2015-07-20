@@ -7,11 +7,7 @@ The states have been modified so that after round 1, prices are stored.
 conference on Uncertainty in artificial intelligence. AUAI Press, 2004.
 """
 from bidder.mdp_uai import MDPBidderUAI
-import math
-import scipy.integrate
-import scipy.interpolate
 from auction.SequentialAuction import SequentialAuction
-from scipy.stats import bernoulli
 import itertools
 from collections import defaultdict
 
