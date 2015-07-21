@@ -52,9 +52,12 @@ for v in itertools.product(possible_types, repeat=num_rounds):
         Q = {}
         if s in learner.terminal_states:
             continue
+        maxQ = -float('inf')
         for a in learner.action_space:
             Q[a] = learner.Q[(s,a)]
-        best_action = max(Q.items(), key=operator.itemgetter(1))[0]
+            maxQ = max(maxQ, learner.Q[(s, a)])
+        maxQ_actions = [a for a in learner.action_space if learner.Q[(s, a)] == maxQ]
+        best_action = min(maxQ_actions)
         print('State', s, '. Optimal Action =' , best_action, '. Q of each action:', Q)
     print('Values at terminal states')
     for s in learner.terminal_states:
