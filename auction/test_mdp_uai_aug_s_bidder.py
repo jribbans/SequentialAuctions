@@ -18,9 +18,9 @@ num_bidders = 2
 
 # Values in possible_types must be increasing.
 # possible_types = [i / 100.0 for i in range(101)]
-# possible_types = [i / 20.0 for i in range(21)]
+possible_types = [i / 20.0 for i in range(21)]
 # possible_types = [3, 10]
-possible_types = [i / 10.0 for i in range(11)]
+# possible_types = [i / 10.0 for i in range(11)]
 # possible_types = [i for i in range(3)]
 type_dist_disc = True
 if type_dist_disc:
@@ -59,6 +59,7 @@ num_trials = 100
 b0 = [0] * num_trials
 lb0 = [0] * num_trials
 lb10 = [0] * num_trials
+lb11 = [0] * num_trials
 val0 = [0] * num_trials
 val1 = [0] * num_trials
 for r in range(num_trials):
@@ -76,7 +77,10 @@ for r in range(num_trials):
     lb0[r] = learner.place_bid(1)
     if num_rounds > 1:
         lb10[r] = learner.place_bid(2)
-    print(learner.valuations, round(b0[r], learner.digit_precision), lb0[r], lb10[r])
+        learner.num_goods_won = 1
+        lb11[r] = learner.place_bid(2)
+        learner.num_goods_won = 0
+    print(learner.valuations, round(b0[r], learner.digit_precision), lb0[r], lb10[r], lb11[r])
 
 """
 plt.figure()
