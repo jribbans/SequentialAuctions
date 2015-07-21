@@ -67,6 +67,8 @@ class MDPBidderUAIAugS(MDPBidderUAI):
             # Refresh bidders
             for bidder in bidders:
                 bidder.valuations = bidder.make_valuations()
+                for v in bidder.valuations:
+                    self.action_space.add(round(v, self.digit_precision))
                 bidder.reset()
             # Run auction and learn results of nth bidder
             sa.run()
