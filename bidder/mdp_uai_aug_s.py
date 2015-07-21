@@ -157,15 +157,18 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         :return: bid: Float.  The bid the bidder will place.
         """
         r = current_round - 1
-        if r > 0:
-            self.announced_price[r - 1] = round(self.announced_price[r - 1], self.digit_precision)
-        s = ()
-        for t in range(r):
-            s = s + ((int(self.win[t]), self.announced_price[t]),)
-        maxQ = -float('inf')
-        for a in self.action_space:
-            maxQ = max(maxQ, self.Q[(s, a)])
-        maxQ_actions = [a for a in self.action_space if self.Q[(s, a)] == maxQ]
-        bid = min(maxQ_actions)
+        if self.bid_val_in_last_round and (current_round == self.num_rounds):
+            bid = self.valuations[self.num_goods_won]
+        else:
+            if r > 0:
+                self.announced_price[r - 1] = round(self.announced_price[r - 1], self.digit_precision)
+            s = ()
+            for t in range(r):
+                s = s + ((int(self.win[t]), self.announced_price[t]),)
+            maxQ = -float('inf')
+            for a in self.action_space:
+                maxQ = max(maxQ, self.Q[(s, a)])
+            maxQ_actions = [a for a in self.action_space if self.Q[(s, a)] == maxQ]
+            bid = min(maxQ_actions)
         self.bid[r] = bid
         return bid

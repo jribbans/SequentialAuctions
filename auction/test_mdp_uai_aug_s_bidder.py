@@ -13,14 +13,14 @@ random.seed(0)
 numpy.random.seed(0)
 
 # Auction parameters
-num_rounds = 1
+num_rounds = 2
 num_bidders = 2
 
 # Values in possible_types must be increasing.
 # possible_types = [i / 100.0 for i in range(101)]
-possible_types = [i / 20.0 for i in range(21)]
+# possible_types = [i / 20.0 for i in range(21)]
 # possible_types = [3, 10]
-# possible_types = [i / 10.0 for i in range(11)]
+possible_types = [i / 10.0 for i in range(11)]
 # possible_types = [i for i in range(3)]
 type_dist_disc = True
 if type_dist_disc:
@@ -28,14 +28,14 @@ if type_dist_disc:
 else:
     type_dist = [1.0] * len(possible_types)
 
-num_mc = 200000
+num_mc = 10000
 
-# bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-#           for i in range(num_bidders)]
+bidders = [KatzmanBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+           for i in range(num_bidders)]
 # bidders = [MenezesMonteiroBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 #           for i in range(num_bidders)]
-bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-           for i in range(num_bidders)]
+#bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+#           for i in range(num_bidders)]
 # bidders = [WeberBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 #           for i in range(num_bidders)]
 learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
@@ -76,7 +76,7 @@ for r in range(num_trials):
     lb0[r] = learner.place_bid(1)
     if num_rounds > 1:
         lb10[r] = learner.place_bid(2)
-    print(learner.valuations, lb0[r], lb10[r])
+    print(learner.valuations, round(b0[r], learner.digit_precision), lb0[r], lb10[r])
 
 """
 plt.figure()

@@ -16,9 +16,9 @@ class AbstractMDPBidder(SimpleBidder):
         :param type_dist_disc: Boolean.  True if type_dist is describing a discrete distribution.
         """
         SimpleBidder.__init__(self, bidder_id, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
-        self.state_space = []
-        self.terminal_states = []
-        self.action_space = []
+        self.state_space = set()
+        self.terminal_states = set()
+        self.action_space = set()
         self.T = {}
         self.R = {}
         self.Q = {}
@@ -30,6 +30,11 @@ class AbstractMDPBidder(SimpleBidder):
 
         self.make_state_space()
         self.make_action_space()
+
+        self.bid_val_in_last_round = True
+        if self.bid_val_in_last_round:
+            for v in self.valuations:
+                self.action_space.add(v)
 
     def make_state_space(self):
         """
@@ -110,6 +115,10 @@ class AbstractMDPBidder(SimpleBidder):
                         continue
                     if s in self.terminal_states:
                         continue
+                    num_won = sum(s[i][0] for i in range(len(s)))
+                    if (len(s) == self.num_rounds - 1) and (a != self.valuations[num_won]) and self.bid_val_in_last_round:
+                        Q[(s, a)] = -float('inf')
+                        continue
                     Q[(s, a)] = self.R[(s, a)]
                     for s_ in self.state_space:
                         if (s, a, s_) not in self.T.keys():
@@ -143,10 +152,13 @@ class AbstractMDPBidder(SimpleBidder):
         """
         r = current_round - 1
         s = (self.num_goods_won, r)
-        maxQ = -float('inf')
-        for a in self.action_space:
-            maxQ = max(maxQ, self.Q[(s, a)])
-        maxQ_actions = [a for a in self.action_space if self.Q[(s, a)] == maxQ]
-        bid = min(maxQ_actions)
+        if self.bid_val_in_last_round and (current_round == self.num_rounds):
+            bid = self.valuations[self.num_goods_won]
+        else:
+            maxQ = -float('inf')
+            for a in self.action_space:
+                maxQ = max(maxQ, self.Q[(s, a)])
+            maxQ_actions = [a for a in self.action_space if self.Q[(s, a)] == maxQ]
+            bid = min(maxQ_actions)
         self.bid[r] = bid
         return bid

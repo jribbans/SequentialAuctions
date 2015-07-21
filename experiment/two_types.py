@@ -21,7 +21,7 @@ type_dist_disc = True
 type_dist = [.8, .2]
 
 # Learn the MDP
-num_mc = 500000
+num_mc = 10000
 bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
            for i in range(num_bidders)]
 learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
