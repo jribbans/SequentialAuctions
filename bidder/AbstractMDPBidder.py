@@ -23,6 +23,7 @@ class AbstractMDPBidder(SimpleBidder):
         self.R = {}
         self.Q = {}
         self.V = {}
+        self.pi = {}
 
         self.price_prediction = {}
         self.price_pdf = {}
@@ -83,6 +84,7 @@ class AbstractMDPBidder(SimpleBidder):
         \pi(s) = argmax_a Q(s,a)
         """
         self.V, self.Q = self.value_iteration()
+        self.pi = self.determine_policy()
 
     def value_iteration(self):
         """
@@ -116,7 +118,8 @@ class AbstractMDPBidder(SimpleBidder):
                     if s in self.terminal_states:
                         continue
                     num_won = sum(s[i][0] for i in range(len(s)))
-                    if (len(s) == self.num_rounds - 1) and (a != self.valuations[num_won]) and self.bid_val_in_last_round:
+                    if (len(s) == self.num_rounds - 1) and (
+                                a != self.valuations[num_won]) and self.bid_val_in_last_round:
                         Q[(s, a)] = -float('inf')
                         continue
                     Q[(s, a)] = self.R[(s, a)]
@@ -142,6 +145,18 @@ class AbstractMDPBidder(SimpleBidder):
 
         return V, Q
 
+    def determine_policy(self):
+        """
+        """
+        pi = {}
+        for s in self.state_space:
+            maxQ = -float('inf')
+            for a in self.action_space:
+                maxQ = max(maxQ, self.Q[(s, a)])
+            maxQ_actions = [a for a in self.action_space if self.Q[(s, a)] == maxQ]
+            pi[s] = min(maxQ_actions)
+        return pi
+
     def place_bid(self, current_round):
         """
         Places a bid based on what the bidder has learned.
@@ -155,10 +170,6 @@ class AbstractMDPBidder(SimpleBidder):
         if self.bid_val_in_last_round and (current_round == self.num_rounds):
             bid = self.valuations[self.num_goods_won]
         else:
-            maxQ = -float('inf')
-            for a in self.action_space:
-                maxQ = max(maxQ, self.Q[(s, a)])
-            maxQ_actions = [a for a in self.action_space if self.Q[(s, a)] == maxQ]
-            bid = min(maxQ_actions)
+            bid = self.pi[s]
         self.bid[r] = bid
         return bid
