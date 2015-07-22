@@ -151,6 +151,8 @@ class AbstractMDPBidder(SimpleBidder):
         """
         pi = {}
         for s in self.state_space:
+            if s in self.terminal_states:
+                continue
             maxQ = -float('inf')
             for a in self.action_space:
                 maxQ = max(maxQ, self.Q[(s, a)])
