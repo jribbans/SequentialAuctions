@@ -6,6 +6,7 @@ import random
 import numpy
 import itertools
 import copy
+from pprint import pprint
 
 # Initialize random number seeds for repeatability
 random.seed(0)
@@ -62,13 +63,9 @@ for v in itertools.product(possible_types, repeat=num_rounds):
         Q = {}
         if s in learner.terminal_states:
             continue
-        maxQ = -float('inf')
         for a in learner.action_space:
             Q[a] = learner.Q[(s, a)]
-            maxQ = max(maxQ, learner.Q[(s, a)])
-        maxQ_actions = [a for a in learner.action_space if learner.Q[(s, a)] == maxQ]
-        best_action = min(maxQ_actions)
-        print('State', s, '. Optimal Action =', best_action, '. Q of each action:', Q)
+        print('State', s, '. Optimal Action =', learner.pi[s], '. Q of each action:', Q)
     print('Values at terminal states')
     for s in learner.terminal_states:
         print('State', s, '. V[s] =', learner.V[s])
@@ -107,6 +104,10 @@ for t in range(num_trials):
 print('Avg utility, Simple:', sum(util_simple) / num_trials)
 print('Avg utility, Learner:', sum(util_learner) / num_trials)
 
+# Iterate until policy convergence.
+# Check that all policies have not changed.  If we check each policy for each valuation individually (pi(v)),
+# we might run into a situation where pi(v) has not changed, but changes in policy pi(v') might affect
+# what happens to pi(v).
 current_pi = copy.deepcopy(policies)
 next_pi = copy.deepcopy(policies)
 pi_converged = False
@@ -140,10 +141,6 @@ while not pi_converged:
         iter_learner.is_bidding_valuation_in_final_round()
         iter_policies[tuple(v)] = copy.deepcopy(iter_learner.pi)
         iter_exp_payment[tuple(v)] = copy.deepcopy(iter_learner.exp_payment)
-        #print('Valuation vector', v)
-        #print('Policy/Iter Policy')
-        #print(policies[tuple(v)])
-        #print(iter_policies[tuple(v)])
 
     sa = SequentialAuction([bidders[0], iter_learner], num_rounds)
     util_learner = [-1] * num_trials
@@ -165,6 +162,7 @@ while not pi_converged:
         pi_converged = True
         print('Converged after', pi_converged_iter, 'iterations')
 
-    for k in current_pi.keys():
-        print('orig', k, current_pi[k])
-        print('next', k, next_pi[k])
+print('Policy learned')
+for v in itertools.product(possible_types, repeat=num_rounds):
+    print('Valuations =', v)
+    pprint(current_pi[v])

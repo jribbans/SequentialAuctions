@@ -204,20 +204,8 @@ class AbstractMDPBidder(SimpleBidder):
                             did_not_win_against_higher = ((s[-1][1] > self.pi[current_s]) and (s[-1][0] == 0))
                             did_not_lose_against_lower = ((s[-1][1] < self.pi[current_s]) and (s[-1][0] > 0))
                             is_tie = s[-1][1] == self.pi[current_s]
-                            """
-                            print(s, s[-1])
-                            print(s[-1][0])
-                            print(s[-1][1])
-                            print(self.pi[current_s])
-                            print(is_tie)
-                            print(did_not_win_against_higher, did_not_lose_against_lower)
-                            """
-                            if is_tie or (did_not_win_against_higher or did_not_lose_against_lower):
-                                print(self.valuations, current_s, self.pi[current_s], 'adding', s)
+                            if is_tie or did_not_win_against_higher or did_not_lose_against_lower:
                                 to_process.append(s)
-                            else:
-                                print(self.valuations, current_s, self.pi[current_s], 'NOT adding', s)
-                                print(is_tie, did_not_win_against_higher, did_not_lose_against_lower)
 
         return is_truthful
 
