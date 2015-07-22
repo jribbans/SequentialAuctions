@@ -160,25 +160,24 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         :return: bid: Float.  The bid the bidder will place.
         """
         r = current_round - 1
-        if self.use_given_pi:
-            if self.bid_val_in_last_round and (current_round == self.num_rounds):
-                bid = self.valuations[self.num_goods_won]
-            else:
-                if r > 0:
-                    self.announced_price[r - 1] = round(self.announced_price[r - 1], self.digit_precision)
-                s = ()
-                for t in range(r):
-                    s = s + ((int(self.win[t]), self.announced_price[t]),)
-                bid = self.given_pi[tuple(self.valuations)][s]
+
+        # Truncate values according to how they were stored
+        if r > 0:
+            self.announced_price[r - 1] = round(self.announced_price[r - 1], self.digit_precision)
+
+        # Make state
+        s = ()
+        for t in range(r):
+            s = s + ((int(self.win[t]), self.announced_price[t]),)
+
+        if self.use_given_pi and s in self.given_pi[tuple(self.valuations)].keys():
+            bid = self.given_pi[tuple(self.valuations)][s]
         else:
             if self.bid_val_in_last_round and (current_round == self.num_rounds):
                 bid = self.valuations[self.num_goods_won]
             else:
-                if r > 0:
-                    self.announced_price[r - 1] = round(self.announced_price[r - 1], self.digit_precision)
-                s = ()
-                for t in range(r):
-                    s = s + ((int(self.win[t]), self.announced_price[t]),)
                 bid = self.pi[s]
+            if self.use_given_pi:
+                self.given_pi[s] = bid
         self.bid[r] = bid
         return bid
