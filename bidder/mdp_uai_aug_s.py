@@ -5,7 +5,6 @@ States are tuples that store whether the bidder has won and the announced price.
 """
 from bidder.mdp_uai import MDPBidderUAI
 from auction.SequentialAuction import SequentialAuction
-import itertools
 from collections import defaultdict
 
 
@@ -34,6 +33,8 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         self.state_space = set()
         self.terminal_states = set()
         self.action_space = set()
+        self.use_given_pi = False
+        self.given_pi = {}
 
     def make_state_space(self):
         pass
@@ -159,14 +160,25 @@ class MDPBidderUAIAugS(MDPBidderUAI):
         :return: bid: Float.  The bid the bidder will place.
         """
         r = current_round - 1
-        if self.bid_val_in_last_round and (current_round == self.num_rounds):
-            bid = self.valuations[self.num_goods_won]
+        if self.use_given_pi:
+            if self.bid_val_in_last_round and (current_round == self.num_rounds):
+                bid = self.valuations[self.num_goods_won]
+            else:
+                if r > 0:
+                    self.announced_price[r - 1] = round(self.announced_price[r - 1], self.digit_precision)
+                s = ()
+                for t in range(r):
+                    s = s + ((int(self.win[t]), self.announced_price[t]),)
+                bid = self.given_pi[tuple(self.valuations)][s]
         else:
-            if r > 0:
-                self.announced_price[r - 1] = round(self.announced_price[r - 1], self.digit_precision)
-            s = ()
-            for t in range(r):
-                s = s + ((int(self.win[t]), self.announced_price[t]),)
-            bid = self.pi[s]
+            if self.bid_val_in_last_round and (current_round == self.num_rounds):
+                bid = self.valuations[self.num_goods_won]
+            else:
+                if r > 0:
+                    self.announced_price[r - 1] = round(self.announced_price[r - 1], self.digit_precision)
+                s = ()
+                for t in range(r):
+                    s = s + ((int(self.win[t]), self.announced_price[t]),)
+                bid = self.pi[s]
         self.bid[r] = bid
         return bid
