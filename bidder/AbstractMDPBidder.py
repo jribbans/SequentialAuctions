@@ -32,7 +32,8 @@ class AbstractMDPBidder(SimpleBidder):
         self.make_state_space()
         self.make_action_space()
 
-        self.bid_val_in_last_round = True
+        # Force the bidder to bid truthfully in the last round.
+        self.bid_val_in_last_round = False
         if self.bid_val_in_last_round:
             for v in self.valuations:
                 self.action_space.add(v)
@@ -154,8 +155,49 @@ class AbstractMDPBidder(SimpleBidder):
             for a in self.action_space:
                 maxQ = max(maxQ, self.Q[(s, a)])
             maxQ_actions = [a for a in self.action_space if self.Q[(s, a)] == maxQ]
+            # Pick the action that corresponds to the lowest bid.  Since all possible bids have the same
+            # Q value, there shouldn't be a reason to bid more than what's needed.
             pi[s] = min(maxQ_actions)
         return pi
+
+    def is_bidding_valuation_in_final_round(self):
+        """
+        """
+        # Keep track of reachable states, starting from the initial state.
+        to_process = [()]
+        is_truthful = True
+        while len(to_process) > 0:
+            current_s = to_process[0]
+            del to_process[0]
+            # If we have reached a state corresponding to the final round, then check if we bid truthfully here.
+            if len(current_s) == self.num_rounds - 1:
+                # The number of goods won according to the state
+                num_won = sum(current_s[i][0] for i in range(self.num_rounds - 1))
+                # If the bidder is bidding truthfully in the last round, then the bid should equal valuation
+                if self.pi[current_s] != self.valuations[num_won]:
+                    print('Possible path does not have truthful bidding in last round')
+                    print(current_s)
+                    print('Num goods won =', num_won)
+                    print('Valuation vector =', self.valuations)
+                    print('Should bid =', self.valuations[num_won])
+                    print('Policy at this state =', self.pi[current_s])
+                    is_truthful = False
+                    break
+            else:
+                # Add to the list of states we will process all states we can transition to using the current policy.
+                for s in self.state_space:
+                    # The next state has one entry more than the current state
+                    if len(current_s) == len(s) - 1:
+                        # The next state should contain the information of the current state.
+                        if all(current_s[i] == s[i] for i in range(len(current_s))):
+                            # The transition being made
+                            # sas_ = (current_s, self.pi[current_s], s)
+                            # Cannot reach states where the bidder bid more than the payment.
+                            did_not_win_against_higher = ((s[-1][1] > self.pi[current_s]) and (s[-1][0] == 0))
+                            if did_not_win_against_higher:
+                                to_process.append(s)
+
+        return is_truthful
 
     def place_bid(self, current_round):
         """

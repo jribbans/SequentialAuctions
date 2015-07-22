@@ -52,6 +52,8 @@ for k in learner.T.keys():
 learner.valuations = [.1, .1]
 learner.calc_expected_rewards()
 learner.solve_mdp()
+final_round_truthful = learner.is_bidding_valuation_in_final_round()
+print('Bidding truthfully in final round =', final_round_truthful)
 
 # Compare against a bidder
 bidders[0].reset()
@@ -80,7 +82,11 @@ for r in range(num_trials):
         learner.num_goods_won = 1
         lb11[r] = learner.place_bid(2)
         learner.num_goods_won = 0
-    print(learner.valuations, round(b0[r], learner.digit_precision), lb0[r], lb10[r], lb11[r])
+    if not(learner.is_bidding_valuation_in_final_round()):
+        truthful_result_output = 'Does not bid truthfully in last round.'
+    else:
+        truthful_result_output = 'Truthful bidding in last round'
+    print(learner.valuations, round(b0[r], learner.digit_precision), lb0[r], lb10[r], lb11[r], truthful_result_output)
 
 """
 plt.figure()

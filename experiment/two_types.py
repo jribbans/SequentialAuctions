@@ -27,6 +27,12 @@ bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, t
 learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 # learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 learner.learn_auction_parameters(bidders, num_mc)
+learner.valuations = bidders[1].valuations
+learner.calc_expected_rewards()
+learner.solve_mdp()
+print('Test if the bidder bids truthfully')
+final_round_truthful = learner.is_bidding_valuation_in_final_round()
+print('Bidding truthfully in final round =', final_round_truthful)
 
 # Display what was learned
 print('Transitions: state \t action \t next state \t probability')
@@ -62,6 +68,11 @@ for v in itertools.product(possible_types, repeat=num_rounds):
     print('Values at terminal states')
     for s in learner.terminal_states:
         print('State', s, '. V[s] =', learner.V[s])
+    if not(learner.is_bidding_valuation_in_final_round()):
+        truthful_result_output = 'Does not bid truthfully in last round.'
+    else:
+        truthful_result_output = 'Truthful bidding in last round'
+    print(truthful_result_output)
 
 # Compare utility of simple vs learned
 print('Run Learner and see how it does')

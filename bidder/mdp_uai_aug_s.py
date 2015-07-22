@@ -167,10 +167,6 @@ class MDPBidderUAIAugS(MDPBidderUAI):
             s = ()
             for t in range(r):
                 s = s + ((int(self.win[t]), self.announced_price[t]),)
-            maxQ = -float('inf')
-            for a in self.action_space:
-                maxQ = max(maxQ, self.Q[(s, a)])
-            maxQ_actions = [a for a in self.action_space if self.Q[(s, a)] == maxQ]
-            bid = min(maxQ_actions)
+            bid = self.pi[s]
         self.bid[r] = bid
         return bid
