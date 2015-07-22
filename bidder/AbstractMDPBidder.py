@@ -159,7 +159,13 @@ class AbstractMDPBidder(SimpleBidder):
             maxQ_actions = [a for a in self.action_space if self.Q[(s, a)] == maxQ]
             # Pick the action that corresponds to the lowest bid.  Since all possible bids have the same
             # Q value, there shouldn't be a reason to bid more than what's needed.
-            pi[s] = min(maxQ_actions)
+            # However, if we can bid true valuation, then do that.
+            num_won = sum(s[i][0] for i in range(len(s)))
+            if float(self.valuations[num_won]) in maxQ_actions:
+                pi[s] = self.valuations[num_won]
+            else:
+                pi[s] = min(maxQ_actions)
+
         return pi
 
     def is_bidding_valuation_in_final_round(self):
@@ -196,8 +202,22 @@ class AbstractMDPBidder(SimpleBidder):
                             # sas_ = (current_s, self.pi[current_s], s)
                             # Cannot reach states where the bidder bid more than the payment.
                             did_not_win_against_higher = ((s[-1][1] > self.pi[current_s]) and (s[-1][0] == 0))
-                            if did_not_win_against_higher:
+                            did_not_lose_against_lower = ((s[-1][1] < self.pi[current_s]) and (s[-1][0] > 0))
+                            is_tie = s[-1][1] == self.pi[current_s]
+                            """
+                            print(s, s[-1])
+                            print(s[-1][0])
+                            print(s[-1][1])
+                            print(self.pi[current_s])
+                            print(is_tie)
+                            print(did_not_win_against_higher, did_not_lose_against_lower)
+                            """
+                            if is_tie or (did_not_win_against_higher or did_not_lose_against_lower):
+                                print(self.valuations, current_s, self.pi[current_s], 'adding', s)
                                 to_process.append(s)
+                            else:
+                                print(self.valuations, current_s, self.pi[current_s], 'NOT adding', s)
+                                print(is_tie, did_not_win_against_higher, did_not_lose_against_lower)
 
         return is_truthful
 

@@ -5,7 +5,7 @@ from bidder.simple import SimpleBidder
 import random
 import numpy
 import itertools
-import operator
+import copy
 
 # Initialize random number seeds for repeatability
 random.seed(0)
@@ -27,7 +27,7 @@ bidders = [SimpleBidder(i, num_rounds, num_bidders, possible_types, type_dist, t
 learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 # learner = MDPBidderUAI(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
 learner.learn_auction_parameters(bidders, num_mc)
-learner.valuations = bidders[1].valuations
+learner.valuations = copy.deepcopy(bidders[1].valuations)
 learner.calc_expected_rewards()
 learner.solve_mdp()
 print('Test if the bidder bids truthfully')
@@ -42,6 +42,8 @@ for k in sorted_keys:
     print(k[0], '\t', k[1], '\t', k[2], '\t', learner.T[k])
 
 # See how the learner performs
+policies = {}
+exp_payment = {}
 print('See how learner bids')
 calc_rewards = True
 for v in itertools.product(possible_types, repeat=num_rounds):
@@ -52,6 +54,8 @@ for v in itertools.product(possible_types, repeat=num_rounds):
     else:
         learner.calc_terminal_state_rewards()
     learner.solve_mdp()
+    policies[tuple(v)] = copy.deepcopy(learner.pi)
+    exp_payment[tuple(v)] = copy.deepcopy(learner.exp_payment)
     print('Valuation vector =', v)
     print('First round bid =', learner.place_bid(1))
     for s in learner.state_space:
@@ -60,15 +64,15 @@ for v in itertools.product(possible_types, repeat=num_rounds):
             continue
         maxQ = -float('inf')
         for a in learner.action_space:
-            Q[a] = learner.Q[(s,a)]
+            Q[a] = learner.Q[(s, a)]
             maxQ = max(maxQ, learner.Q[(s, a)])
         maxQ_actions = [a for a in learner.action_space if learner.Q[(s, a)] == maxQ]
         best_action = min(maxQ_actions)
-        print('State', s, '. Optimal Action =' , best_action, '. Q of each action:', Q)
+        print('State', s, '. Optimal Action =', best_action, '. Q of each action:', Q)
     print('Values at terminal states')
     for s in learner.terminal_states:
         print('State', s, '. V[s] =', learner.V[s])
-    if not(learner.is_bidding_valuation_in_final_round()):
+    if not (learner.is_bidding_valuation_in_final_round()):
         truthful_result_output = 'Does not bid truthfully in last round.'
     else:
         truthful_result_output = 'Truthful bidding in last round'
@@ -102,3 +106,65 @@ for t in range(num_trials):
 
 print('Avg utility, Simple:', sum(util_simple) / num_trials)
 print('Avg utility, Learner:', sum(util_learner) / num_trials)
+
+current_pi = copy.deepcopy(policies)
+next_pi = copy.deepcopy(policies)
+pi_converged = False
+pi_converged_iter = 0
+while not pi_converged:
+    pi_converged_iter += 1
+    print('Convergence iteration =', pi_converged_iter)
+
+    current_pi = copy.deepcopy(next_pi)
+    mdp_bidders = []
+    for i in range(num_bidders):
+        mdp_bidders.append(
+            MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc))
+        mdp_bidders[i].make_valuations = copy.deepcopy(bidders[i].make_valuations)
+        mdp_bidders[i].use_given_pi = True
+        mdp_bidders[i].given_pi = copy.deepcopy(current_pi)
+
+    iter_learner = MDPBidderUAIAugS(num_bidders, num_rounds, num_bidders, possible_types, type_dist, type_dist_disc)
+    iter_learner.learn_auction_parameters(mdp_bidders, num_mc)
+    calc_rewards = True
+    iter_policies = {}
+    iter_exp_payment = {}
+    for v in itertools.product(possible_types, repeat=num_rounds):
+        iter_learner.valuations = v
+        if calc_rewards:
+            iter_learner.calc_expected_rewards()
+            calc_rewards = False
+        else:
+            iter_learner.calc_terminal_state_rewards()
+        iter_learner.solve_mdp()
+        iter_learner.is_bidding_valuation_in_final_round()
+        iter_policies[tuple(v)] = copy.deepcopy(iter_learner.pi)
+        iter_exp_payment[tuple(v)] = copy.deepcopy(iter_learner.exp_payment)
+        #print('Valuation vector', v)
+        #print('Policy/Iter Policy')
+        #print(policies[tuple(v)])
+        #print(iter_policies[tuple(v)])
+
+    sa = SequentialAuction([bidders[0], iter_learner], num_rounds)
+    util_learner = [-1] * num_trials
+    for t in range(num_trials):
+        for bidder in bidders:
+            bidder.reset()
+            bidder.valuations = bidder.make_valuations()
+        iter_learner.reset()
+        iter_learner.valuations = bidders[1].valuations
+        iter_learner.calc_terminal_state_rewards()
+        iter_learner.solve_mdp()
+        sa.run()
+        util_learner[t] = sum(iter_learner.utility)
+    print('Avg utility, Simple:', sum(util_simple) / num_trials)
+    print('Avg utility, Learner:', sum(util_learner) / num_trials)
+
+    next_pi = copy.deepcopy(iter_policies)
+    if next_pi == current_pi:
+        pi_converged = True
+        print('Converged after', pi_converged_iter, 'iterations')
+
+    for k in current_pi.keys():
+        print('orig', k, current_pi[k])
+        print('next', k, next_pi[k])
